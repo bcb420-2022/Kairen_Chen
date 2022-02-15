@@ -1,10 +1,13 @@
 # Kairen_Chen
 repository for bcb420 for Kairen_Chen
 
-[https://github.com/bcb420-2022/Kairen_Chen/wiki Wiki Link]
+Wiki Link
+https://github.com/bcb420-2022/Kairen_Chen/wiki
 
-[https://github.com/bcb420-2022/Kairen_Chen/blob/main/assignment1.nb.html A1 Report html raw]
+A1 Report html raw
+[https://github.com/bcb420-2022/Kairen_Chen/blob/main/assignment1.nb.html
 
-[https://htmlpreview.github.io/?https://github.com/bcb420-2022/Kairen_Chen/blob/main/assignment1.nb.html A1 Report html rendered]
+A1 Report html rendered
+[https://htmlpreview.github.io/?https://github.com/bcb420-2022/Kairen_Chen/blob/main/assignment1.nb.html
 
 
