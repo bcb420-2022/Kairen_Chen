@@ -1,0 +1,387 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  markdown: 
+    wrap: sentence
+---
+
+# BCB420 Assignment 1 Report: Data set selection and initial Processing (Journal Article Title: Gene therapy of dominant CRX-Leber congenital amaurosis using patient retinal organoids)
+
+## Part 1: Selecting the Data
+
+if the geo meta sqlite database has not been downloaded, download it
+
+```{r get sql db, eval=FALSE}
+if (!file.exists('GEOmetadb.sqlite')) {
+    GEOmetadb::getSQLiteFile()
+}
+```
+
+This is the SQL query that I used to search for, a few thing that are different from code given in lecture, I only select those with a PubMed id to ensure there is a publication associated with the dataset, and where the supplementary file is like "count" to ensure it does not just have a raw file, and it is not connected with cancer, tumor, or stem cell, and SARS-CoV-2, but is connected to gene therapy
+
+```{r sql query, results='asis'}
+con <- DBI::dbConnect(RSQLite::SQLite(),'GEOmetadb.sqlite')
+
+sql <- paste("SELECT DISTINCT gse.title, gse.gse, gse.supplementary_file, gse.pubmed_id, gpl.title
+              FROM gse 
+              INNER JOIN gse_gpl ON gse.gse = gse_gpl.gse
+              INNER JOIN gpl ON gse_gpl.gpl = gpl.gpl
+              WHERE gpl.technology = 'high-throughput sequencing'
+              AND gpl.organism = 'Homo sapiens'
+              AND gse.pubmed_id is NOT NULL
+              AND gse.submission_date > '2015-01-01'
+              AND gse.supplementary_file is NOT NULL
+              AND gse.supplementary_file LIKE '%count%'
+              AND gse.title NOT LIKE '%cancer%'
+              AND gse.title NOT LIKE '%tumor%'
+              AND gse.title NOT LIKE '%stem cells%'
+              AND gse.title NOT LIKE '%SARS-CoV-2%'
+              AND gse.title LIKE '%gene therapy%'")
+
+queryResults <- DBI::dbGetQuery(con, sql)
+queryResults
+```
+
+and there was only 2, and I chose the one on LCA.
+
+## Part 2: Downloading the Data
+
+With GEOquery, I download the GEO series as an R object and look at some attributes of it
+
+```{r download, results='hide'}
+gse <- GEOquery::getGEO("GSE152939", GSEMatrix=FALSE)
+```
+
+```{r looking at basic information of the dataset}
+knitr::kable(data.frame(head(GEOquery::Meta(gse))), format = "html")
+```
+
+```{r look further}
+current_gpl <- names(GEOquery::GPLList(gse))[1]
+current_gpl_info <- GEOquery::Meta(GEOquery::getGEO(current_gpl))
+```
+
+```{r check 1}
+current_gpl_info$title
+```
+
+```{r check 2}
+current_gpl_info$last_update_date
+```
+
+```{r check 3}
+ current_gpl_info$organism
+```
+
+```{r check 4}
+length(current_gpl_info$series_id)
+length(current_gpl_info$sample_id)
+```
+
+I should use grave accent to present all of the information above
+
+With GEOquery, aftering checking if I do have the file that I want, I also downloaded the supplementary files of the data series I am interested in
+
+```{r get supp files, results='hide'}
+if (!file.exists("/home/rstudio/projects/GSE152939/GSE152939_I138fs_raw_counts.txt.gz")) {
+  supplementaryFiles <- GEOquery::getGEOSuppFiles('GSE152939')
+} else {
+  supplementaryFiles <- 
+}
+```
+
+## Part 3: Inspecting Data
+
+```{r look at supp}
+filenames <- rownames(supplementaryFiles)
+filenames
+```
+
+We can see that the first and third supplementary file is normalized counts, and the second and fourth files is raw count.
+We are using raw count, as per specified, and since there are 2 files (which are 2 part of the study) I choose the second file due to numerical order.
+
+```{r check supp}
+read.table(filenames[2],header=TRUE,
+           check.names=FALSE,nrows = 1)[1,1:25]
+read.table(filenames[2],header=TRUE,
+           check.names=TRUE,nrows = 1)[1,1:25]
+```
+
+There is no difference between checking names or not, since this dataset does not use negative and positive signs to represent control and test.
+
+This is what the raw count file looks like, we can see that it has 26 samples.
+6 sample for each of day 90, day 125, day 150, and 8 samples for day 200.
+
+```{r look at count file}
+CRX_ExperimentRawCount <- read.delim(filenames[2], header=TRUE, check.names = FALSE)
+knitr::kable(CRX_ExperimentRawCount[1:10,1:28], format = "html")
+```
+
+## Part 4: Looking at Duplicates in Data
+
+There is this many "genes" across the samples
+
+```{r check duplicates 1}
+dim(CRX_ExperimentRawCount)
+```
+
+the expression data's column names
+
+```{r check duplicates 2}
+colnames(CRX_ExperimentRawCount)
+```
+
+the number of times each genes appears (note, not ensemble id)
+
+```{r check duplicates 3}
+summarized_gene_counts <- sort(table(CRX_ExperimentRawCount$gene.id), decreasing = TRUE)
+summarized_gene_counts
+```
+
+if we do ensemble id instead, they are unique
+
+```{r check duplicates 4, results='hide'}
+summarized_ens_counts <- sort(table(CRX_ExperimentRawCount$ens.id), decreasing = TRUE)
+summarized_ens_counts
+```
+
+Most of the gene ids that have more than one appearance, are RF, which I believe are mRNA
+
+```{r check duplicates 5}
+knitr::kable(summarized_gene_counts[which(summarized_gene_counts>1)])
+```
+
+## Part 5: Filtering out Data with low count
+
+```{r}
+# first get the count of each gene per a million bases
+countPerMillion <- edgeR::cpm(CRX_ExperimentRawCount[3:28])
+rownames(countPerMillion) <- CRX_ExperimentRawCount[,1]
+
+```
+
+I have 3 (or 4 for one condition, the day 200 one) biological replicate, so n = 3
+
+```{r}
+keep = rowSums(countPerMillion >1) >= 3
+CRX_ExperimentRawCountFiltered <- CRX_ExperimentRawCount[keep,]
+```
+
+```{r after removing genes with too little counts}
+summarized_gene_counts <- sort(table(CRX_ExperimentRawCountFiltered$gene.id), decreasing = TRUE)
+knitr::kable(summarized_gene_counts[which(summarized_gene_counts>1)], format = 'html')
+```
+
+```{r, look at how many gene we have now}
+dim(CRX_ExperimentRawCountFiltered)
+```
+
+## part 5: Plotting of Data before Normalization
+
+```{r boxplot of our data}
+data2plot <- log2(edgeR::cpm(CRX_ExperimentRawCountFiltered[,3:28]))
+boxplot(data2plot, xlab = "Samples", ylab = "log2 CPM",
+        las = 2, cex = 0.5, cex.lab = 0.5,
+        cex.axis = 0.5, main = "CRX RNASeq Samples")
+#draw the median on each box plot
+abline(h = median(apply(data2plot, 2, median)),
+       col = "green", lwd = 0.6, lty = "dashed")
+```
+
+```{r}
+counts_density <- apply(log2(edgeR::cpm(CRX_ExperimentRawCountFiltered[,3:28])),
+                        2, density)
+  #calculate the limits across all the samples
+xlim <- 0; ylim <- 0
+for (i in 1:length(counts_density)) {
+      xlim <- range(c(xlim, counts_density[[i]]$x));
+      ylim <- range(c(ylim, counts_density[[i]]$y))
+    }
+    cols <- rainbow(length(counts_density))
+    ltys <- rep(1, length(counts_density))
+    #plot the first density plot to initialize the plot
+    plot(counts_density[[1]], xlim=xlim, ylim=ylim, type="n",
+         ylab="Smoothing density of log2-CPM",
+         main="", cex.lab = 0.85)
+    #plot each line
+for (i in 1:length(counts_density)) lines(counts_density[[i]], col=cols[i], lty=ltys[i])
+    #create legend
+    legend("topright", colnames(data2plot),
+           col=cols, lty=ltys, cex=0.75,
+           border ="blue",  text.col = "green4",
+           merge = TRUE, bg = "gray90")
+```
+
+```{r}
+#plotMA(log2(ca125_exp[,c(3,4)]), ylab="M - ratio log expression",
+       #main="CA125 + vs - - example")
+```
+
+## Part 6: Normalizing the Data
+
+```{r}
+samples <- data.frame(lapply(colnames(CRX_ExperimentRawCountFiltered)[3:28], FUN=function(x){unlist(strsplit(x, split = "\\_"))[c(1, 2, 3)]}))
+samples
+colnames(samples) <- colnames(CRX_ExperimentRawCountFiltered)[3:28]
+rownames(samples) <- c("condition", "time","patient")
+samples <- data.frame(t(samples))
+samples
+```
+
+#TODO do I need to seperate each time though?
+
+```{r}
+filtered_data_matrix <- as.matrix(CRX_ExperimentRawCountFiltered[,3:28])
+rownames(filtered_data_matrix) <- CRX_ExperimentRawCountFiltered$ens.id
+d = edgeR::DGEList(counts=filtered_data_matrix, group=samples$condition)
+d = edgeR::calcNormFactors(d)
+normalized_counts <- edgeR::cpm(d)
+normalized_counts
+```
+
+## Part 7: Data after Normalization
+
+```{r}
+limma::plotMDS(d, labels=rownames(samples), col = c("darkgreen","blue")[factor(samples$condition)])
+```
+
+## Part 9: Dispersion
+
+```{r, eval=FALSE}
+model_design <- model.matrix(~samples$patient
+                             + samples$condition+samples$time+0)
+d <- edgeR::estimateDisp(d, model_design)
+edgeR::plotBCV(d,col.tagwise = "black",col.common = "red",)
+edgeR::plotMeanVar(d, show.raw.vars = TRUE,
+            show.tagwise.vars= TRUE,
+            NBline= TRUE, show.ave.raw.vars = TRUE,
+            show.binned.common.disp.vars = TRUE)
+```
+
+## Part 10: Mapping the data
+
+```{r}
+biomaRt::listMarts()
+```
+
+```{r}
+ensemblMart <- biomaRt::useMart("ensembl")
+datasets <- biomaRt::listDatasets(ensemblMart)
+knitr::kable(head(datasets), format = "html")
+```
+
+```{r}
+knitr::kable(head(datasets[grep(datasets$dataset,
+                  pattern = "sapiens"),]),format = "html")
+```
+
+```{r}
+ensemblDataSet <-  biomaRt::useDataset("hsapiens_gene_ensembl", mart=ensemblMart)
+```
+
+```{r}
+dim(biomaRt::listFilters(ensemblDataSet))
+```
+
+```{r}
+knitr::kable(biomaRt::listFilters(ensemblDataSet)[1:10,1:2], type="html")
+```
+
+```{r}
+biomart_human_filters <- biomaRt::listFilters(ensemblDataSet)
+knitr::kable(biomart_human_filters[grep(biomart_human_filters$name, pattern="ensembl"),], format="html")
+```
+
+```{r}
+knitr::kable(biomaRt::listAttributes(ensemblDataSet)[1:10,1:2], type="html")
+```
+
+```{r}
+knitr::kable(biomaRt::searchAttributes(mart = ensemblDataSet, 'hgnc') , format="html")
+```
+
+```{r}
+knitr::kable(biomaRt::searchAttributes(mart = ensemblDataSet, 'ensembl|hgnc')[1:12,], format="html")
+```
+
+```{r}
+conversion_stash <- "CRX_id_conversion.rds"
+if(file.exists(conversion_stash)){
+  CRX_id_conversion <- readRDS(conversion_stash)
+} else {
+  CRX_id_conversion <- biomaRt::getBM(attributes = c("ensembl_gene_id","hgnc_symbol"),
+                            filters = c("ensembl_gene_id"),
+                            values = CRX_ExperimentRawCountFiltered$ens.id, 
+                            mart = ensemblDataSet)
+  saveRDS(CRX_id_conversion, conversion_stash)
+}
+```
+
+```{r}
+length(
+  which(
+    rownames(normalized_counts) %in% CRX_id_conversion$ensembl_gene_id
+      ))
+nrow(normalized_counts)
+nrow(normalized_counts) - length(which(rownames(normalized_counts) %in% CRX_id_conversion$ensembl_gene_id)
+```
+
+## Part 11 interpreting the data
+
+First of all, I want to clarify that although the associated publication has both bulk RNA-seq and single cell RNA-seq, the dataset series GSE153099 is the one for single cell (it specifically mentions this in its overall design section on GEO) and the dataset series GSE152939 is bulk RNA-seq, which contain 2 data set separate by which mutation is being tested on.
+
+In simple terms, leber congenital amaurosis (LCA) is an eye disease that causes vision loss, most cases of LCA are caused by mutation(s) in Cone-rod homeobox (CRX).
+Normally LCA is a autosomal recessive disease, but some of the mutation in some genes can make it autosomal dominant, CRX is an example of such gene.
+
+There are 2 mutation that were of interest in this study, I138fs and K88N In mutation nomenclature it is c.G264T (p.K88N) or c.413delT (p.I138fs48).
+Translated into English the first mutation means in the coding DNA, guanine at position 264 has been substituted with Adenine, this results a mutation in the corresponding protein's, which is that lysine at position 88 has been substituted with Asparagine.
+The English translation of the second mutation, is that in the coding DNA, Thymine at position 413 was deleted, and thus in the protein start from the Isoleucine at position 138, there is a been frame shift of 48 amino acid.
+
+1.  What are the control and test conditions of the dataset?
+
+    The test condition is a retinal organoid derived from a induced pluripotent stem cells which is derived from a LCA-dominant patient with a mutation in CRX (specifically I138fs48).
+    The control is another retinal organoid derived from induced pluripotent stem cells which is the healthy parent of the patient.
+
+2.  Why is the dataset of interest to you?
+
+    I was initially interested because it talks about gene therapy, which from my perspective is something that directly remove the cause of the disease, by changing the gene.
+    It is the ultimate "treat the cause, not the symptom" treatment.
+    As I was reading the paper, I was amazed that it has so many different things, like organoids, IPSC, bulk RNA-seq, single cell RNA-seq.
+    Maybe it is just me, but I have never seems these terms mention in the same paper.
+
+3.  Were there expression values that were not unique for specific genes?
+
+    How did you handle these?
+    What does this means, a gene has more than 1 expression value?
+    Assume no ensemble id has more than 1 expression value Then this is simply an issue that a gene has 2 ensemble id, then I did not delete them as per the instruction in the slides
+
+4.  Were there expression values that could not be mapped to current HUGO symbols?
+    Yes,
+
+5.  How many outliers were removed?
+
+    None, because I do not have any reason to believe a measurement error has occurred
+
+6.  How did you handle replicates?
+
+    As mentioned in control vs test question, we have 1 pairs of parent and child.
+    3 organoid were each derived from the parent and the child for a total of 6 organoids.
+    Then each organoid was measured at day 90, day 125, day 150, day 200.
+    I think that a different organoid does mean a different biological replicate, though I am not sure in the event that control and test comes from different individuals, does that count as different biological replicates, but if that is the case, then we have 6 biological replicates, else we just have 3.
+    Also, I am almost sure that the retinal organoid from different days are not considered biologically different.
+    For measurement between different organoids, they are unpaired, and the same organoid, paired.
+    I think there are no technical replicates in this file.
+    None of the replicate were outlines, with respect to their own time and condition. 
+
+7.  What is the final coverage of your dataset?
+
+    Around 17000 genes after filtering out low counts, and
+
+## Part 12: Citations
+
+Kruczek, K., Qu, Z., Gentry, J., Fadl, B. R., Gieser, L., Hiriyanna, S., Batz, Z., Samant, M., Samanta, A., Chu, C. J., Campello, L., Brooks, B. P., Wu, Z., & Swaroop, A.
+(2021).
+Gene Therapy of Dominant CRX-Leber Congenital Amaurosis using Patient Stem Cell-Derived Retinal Organoids. 
+*Stem cell reports*, *16*(2), 252--263.
+<https://doi.org/10.1016/j.stemcr.2020.12.018>
