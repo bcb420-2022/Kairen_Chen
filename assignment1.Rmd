@@ -380,7 +380,7 @@ knitr::kable(normalized_counts_annot[1:5,1:5],type = "html")
 ```
 
 ```{r}
-# this is the ones that are null
+# this is the ones ensembl_gene_id that is not in the conversion table 
 ensembl_id_missing_gene <- normalized_counts_annot$ensembl_gene_id[
   which(is.na(normalized_counts_annot$hgnc_symbol))]
 length(ensembl_id_missing_gene)
@@ -405,10 +405,13 @@ knitr::kable(old_mapping[1:10,], type="html")
 occurences <- data.frame(table(CRX_id_conversion$hgnc_symbol))
 # showing the one that occurs more than once
 occurences[occurences$Freq > 1,]
-
-# then showing the ensemble ids that map to null or hgnc symbols that occurs more than once
+```
+```{r}
+# then showing the ensemble ids that map to empty entry or hgnc symbols that occurs more than once
 CRX_id_conversion[CRX_id_conversion$hgnc_symbol %in% occurences$Var1[occurences$Freq > 1],]
 ```
+
+
 
 
 ## Part 10 interpreting the data
@@ -436,15 +439,15 @@ The English translation of the second mutation, is that in the coding DNA, Thymi
 
 3.  Were there expression values that were not unique for specific genes?
 
-    Yes, for the HGNC symbols, CCDC3, LINC01238, POLR2J3, POLR2J4, TBCE, they each map to 2 ensemble ids, 
+    Yes, for the HGNC symbols, CCDC3, LINC01238, POLR2J3, POLR2J4, TBCE, they each map to 2 ensemble ids. 
 
 4.  Were there expression values that could not be mapped to current HUGO symbols?
 
-    Yes, there was about 90+2281=2371 (This comes from 90 ensemble ids that are not in the mapping and 2281 where the corresponding HGNC symbol is empty) ensemble ids that is like. There are 19422 ensemble ids, only 17051 are mapped to current HUGO symbols, this is not too surprising as the associated publication was published on January 28, 2021, and the dataset was last updated on GEO on February 17, 2021 and it is February 15, 2022 at the time of writing this report, so the dataset was not too outdated.
+    Yes, there was about 90+2281=2371 ensemble ids that is like this. (This comes from 90 ensemble ids that are not in the mapping and 2281 where the corresponding HGNC symbol is empty)  There are 19422 ensemble ids, only 17051 are mapped to current HUGO symbols, this is not too surprising as the associated publication was published on January 28, 2021, and the dataset was last updated on GEO on February 17, 2021 and it is February 15, 2022 at the time of writing this report, so the dataset was not too outdated.
 
 5.  How many outliers were removed?
 
-    None, because I do not have any reason to believe a measurement error has occurred
+    None, because I do not have any reason to believe a measurement error has occurred. Except from the ones that were remove due to low count. 
 
 6.  How did you handle replicates?
 
@@ -455,11 +458,12 @@ The English translation of the second mutation, is that in the coding DNA, Thymi
     Also, I am almost sure that the retinal organoid from different days are not considered biologically different.
     For measurement between different organoids, they are unpaired, and the same organoid, paired.
     I think there are no technical replicates in this file.
-    None of the replicate were outlines, with respect to their own time and condition.
+    None of the replicate were outlines, with respect to their own time and condition. Though the day 200 measurement does seems out of place, compare to other day in the MDS plot perhaps some developmental milestones were reached
 
 7.  What is the final coverage of your dataset?
 
-    Around 19422 genes after filtering out low counts
+    Around 19422 genes after filtering out low counts, but only 17051 are mapped
+    to HGNC symbols. 
 
 ## Part 11: Citations
 
