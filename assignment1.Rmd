@@ -1,8 +1,11 @@
 ---
 title: "R Notebook"
-output: html_notebook
-editor_options: 
-  markdown: 
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+editor_options:
+  markdown:
     wrap: sentence
 ---
 
@@ -41,6 +44,7 @@ sql <- paste("SELECT DISTINCT gse.title, gse.gse, gse.supplementary_file, gse.pu
 
 queryResults <- DBI::dbGetQuery(con, sql)
 queryResults
+DBI::dbDisconnect(con)
 ```
 
 and there was only 2, and I chose the one on LCA.
@@ -50,6 +54,7 @@ and there was only 2, and I chose the one on LCA.
 With GEOquery, I download the GEO series as an R object and look at some attributes of it
 
 ```{r download, results='hide'}
+queryResults <- 0
 gse <- GEOquery::getGEO("GSE152939", GSEMatrix=FALSE)
 ```
 
@@ -79,6 +84,12 @@ length(current_gpl_info$series_id)
 length(current_gpl_info$sample_id)
 ```
 
+```{r}
+gse <- 0
+current_gpl_info <- 0
+
+```
+
 I should use grave accent to present all of the information above
 
 With GEOquery, aftering checking if I do have the file that I want, I also downloaded the supplementary files of the data series I am interested in
@@ -87,7 +98,13 @@ With GEOquery, aftering checking if I do have the file that I want, I also downl
 if (!file.exists("/home/rstudio/projects/GSE152939/GSE152939_I138fs_raw_counts.txt.gz")) {
   supplementaryFiles <- GEOquery::getGEOSuppFiles('GSE152939')
 } else {
-  supplementaryFiles <- 
+  supplementaryFiles <- data.frame(row = c(1, 2, 3, 4))
+  rownames(supplementaryFiles) <- c(
+      "/home/rstudio/projects/GSE152939/GSE152939_I138fs_norm_counts_5CPM.txt.gz",
+      "/home/rstudio/projects/GSE152939/GSE152939_I138fs_raw_counts.txt.gz",
+      "/home/rstudio/projects/GSE152939/GSE152939_K88N_norm_counts_5CPM.txt.gz",
+      "/home/rstudio/projects/GSE152939/GSE152939_K88N_raw_counts.txt.gz"
+    )
 }
 ```
 
@@ -99,9 +116,10 @@ filenames
 ```
 
 We can see that the first and third supplementary file is normalized counts, and the second and fourth files is raw count.
-We are using raw count, as per specified, and since there are 2 files (which are 2 part of the study) I choose the second file due to numerical order.
+We are using raw count, as per specified, and since there are 2 files (which are 2 different part of the study) I choose the second file due to numerical order.
 
 ```{r check supp}
+supplementaryFiles <- 0
 read.table(filenames[2],header=TRUE,
            check.names=FALSE,nrows = 1)[1,1:25]
 read.table(filenames[2],header=TRUE,
@@ -120,7 +138,7 @@ knitr::kable(CRX_ExperimentRawCount[1:10,1:28], format = "html")
 
 ## Part 4: Looking at Duplicates in Data
 
-There is this many "genes" across the samples
+There is this many gene ids across the samples
 
 ```{r check duplicates 1}
 dim(CRX_ExperimentRawCount)
@@ -139,18 +157,25 @@ summarized_gene_counts <- sort(table(CRX_ExperimentRawCount$gene.id), decreasing
 summarized_gene_counts
 ```
 
+Most of the gene ids that have more than one appearance, are RF, which I believe are non-coding RNA
+
+```{r check duplicates 4}
+knitr::kable(summarized_gene_counts[which(summarized_gene_counts>1)])
+```
+
 if we do ensemble id instead, they are unique
 
-```{r check duplicates 4, results='hide'}
+```{r check duplicates 5, results='hide'}
 summarized_ens_counts <- sort(table(CRX_ExperimentRawCount$ens.id), decreasing = TRUE)
 summarized_ens_counts
 ```
 
-Most of the gene ids that have more than one appearance, are RF, which I believe are mRNA
-
-```{r check duplicates 5}
-knitr::kable(summarized_gene_counts[which(summarized_gene_counts>1)])
+```{r}
+summarized_gene_counts <- 0
+summarized_ens_counts <- 0
 ```
+
+
 
 ## Part 5: Filtering out Data with low count
 
@@ -166,11 +191,15 @@ I have 3 (or 4 for one condition, the day 200 one) biological replicate, so n = 
 ```{r}
 keep = rowSums(countPerMillion >1) >= 3
 CRX_ExperimentRawCountFiltered <- CRX_ExperimentRawCount[keep,]
+CRX_ExperimentRawCount <- 0
+countPerMillion <- 0
+keep <- 0
 ```
 
 ```{r after removing genes with too little counts}
 summarized_gene_counts <- sort(table(CRX_ExperimentRawCountFiltered$gene.id), decreasing = TRUE)
 knitr::kable(summarized_gene_counts[which(summarized_gene_counts>1)], format = 'html')
+summarized_gene_counts <- 0
 ```
 
 ```{r, look at how many gene we have now}
@@ -179,7 +208,7 @@ dim(CRX_ExperimentRawCountFiltered)
 
 ## part 5: Plotting of Data before Normalization
 
-```{r boxplot of our data}
+```{r boxplot of our data, warning=FALSE}
 data2plot <- log2(edgeR::cpm(CRX_ExperimentRawCountFiltered[,3:28]))
 boxplot(data2plot, xlab = "Samples", ylab = "log2 CPM",
         las = 2, cex = 0.5, cex.lab = 0.5,
@@ -194,24 +223,32 @@ counts_density <- apply(log2(edgeR::cpm(CRX_ExperimentRawCountFiltered[,3:28])),
                         2, density)
   #calculate the limits across all the samples
 xlim <- 0; ylim <- 0
-for (i in 1:length(counts_density)) {
-      xlim <- range(c(xlim, counts_density[[i]]$x));
-      ylim <- range(c(ylim, counts_density[[i]]$y))
-    }
-    cols <- rainbow(length(counts_density))
-    ltys <- rep(1, length(counts_density))
-    #plot the first density plot to initialize the plot
-    plot(counts_density[[1]], xlim=xlim, ylim=ylim, type="n",
+for (i in 1:length(counts_density)) 
+  {
+    xlim <- range(c(xlim, counts_density[[i]]$x));
+    ylim <- range(c(ylim, counts_density[[i]]$y))
+  }
+cols <- rainbow(length(counts_density))
+ltys <- rep(1, length(counts_density))
+#plot the first density plot to initialize the plot
+plot(counts_density[[1]], xlim=xlim, ylim=ylim, type="n",
          ylab="Smoothing density of log2-CPM",
          main="", cex.lab = 0.85)
-    #plot each line
+#plot each line
 for (i in 1:length(counts_density)) lines(counts_density[[i]], col=cols[i], lty=ltys[i])
-    #create legend
-    legend("topright", colnames(data2plot),
+    
+#create legend
+legend("topright", colnames(data2plot),
            col=cols, lty=ltys, cex=0.75,
            border ="blue",  text.col = "green4",
            merge = TRUE, bg = "gray90")
 ```
+
+```{r}
+data2plot <- 0
+counts_density <- 0
+```
+
 
 ```{r}
 #plotMA(log2(ca125_exp[,c(3,4)]), ylab="M - ratio log expression",
@@ -229,7 +266,6 @@ samples <- data.frame(t(samples))
 samples
 ```
 
-#TODO do I need to seperate each time though?
 
 ```{r}
 filtered_data_matrix <- as.matrix(CRX_ExperimentRawCountFiltered[,3:28])
@@ -248,7 +284,7 @@ limma::plotMDS(d, labels=rownames(samples), col = c("darkgreen","blue")[factor(s
 
 ## Part 9: Dispersion
 
-```{r, eval=FALSE}
+```{r}
 model_design <- model.matrix(~samples$patient
                              + samples$condition+samples$time+0)
 d <- edgeR::estimateDisp(d, model_design)
@@ -323,9 +359,14 @@ length(
   which(
     rownames(normalized_counts) %in% CRX_id_conversion$ensembl_gene_id
       ))
+
 nrow(normalized_counts)
-nrow(normalized_counts) - length(which(rownames(normalized_counts) %in% CRX_id_conversion$ensembl_gene_id)
+
+nrow(normalized_counts) - length(which(rownames(normalized_counts) %in% CRX_id_conversion$ensembl_gene_id))
 ```
+
+There are 19422 ensemble ids, only 19332 are mapped to current HUGO symbols, this is not too surprising as the associated publication was published on January 28, 2021, and the dataset was last updated on GEO on February 17, 2021.
+and it is February 15, 2022 at the time of writing this report, so the dataset was not too outdated.
 
 ## Part 11 interpreting the data
 
@@ -376,7 +417,7 @@ The English translation of the second mutation, is that in the coding DNA, Thymi
 
 7.  What is the final coverage of your dataset?
 
-    Around 17000 genes after filtering out low counts, and
+    Around 19422 genes after filtering out low counts
 
 ## Part 12: Citations
 
