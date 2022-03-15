@@ -827,13 +827,10 @@ write.table(x=first5000_genes,
 
 # Results of G:profiler
 
-![](./wholelist_unordered.png)
-
 ![](./wholelist_ordered.png)
-![](./downregulated_unordered.png)
+
 ![](./downregulated_ordered.png)
 
-![](./upregulated_unordered.png)
 ![](./upregulated_ordered.png)
 
 # Volcano Plot
