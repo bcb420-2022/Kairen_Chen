@@ -10,4 +10,10 @@ A1 Report html raw
 A1 Report html rendered
 [https://htmlpreview.github.io/?https://github.com/bcb420-2022/Kairen_Chen/blob/main/assignment1.nb.html
 
+A2 Report html raw
+https://github.com/bcb420-2022/Kairen_Chen/blob/main/A2_KaiRenChen.nb.html
+
+A2 Report html rendered
+[https://htmlpreview.github.io/?https://github.com/bcb420-2022/Kairen_Chen/blob/main/A2_KaiRenChen.nb.html
+
 
