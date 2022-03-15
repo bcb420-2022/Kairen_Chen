@@ -835,7 +835,7 @@ write.table(x=first5000_genes,
 
 # Volcano Plot
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 qlf_pvalues <- data.frame(
           ensembl_id = rownames(qlf_output_hits$table),
           qlf_pvalues = -log10(qlf_output_hits$table$FDR))
@@ -869,7 +869,7 @@ Figure 14: volcano plot of all genes, zoomed in to -2 to 2 for logFC, and 0 to
 There is visual separation of upregulated genes and downregulated gene, we can 
 clearly see the 
 
-```{r}
+```{r message=TRUE, warning=FALSE}
 
 
 qlf_pvalues_interest <- data.frame(
