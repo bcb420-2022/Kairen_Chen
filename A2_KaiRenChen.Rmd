@@ -90,6 +90,10 @@ Table 1b: showing the two gene has the same ensembl gene id, but not exactly the
 I find the one that is consider as duplicate, then find the one that has the same enmselble gene id as it. 
 For some reason this ensembl gene id maps to 2 hgnc symbols, SUGT1P4-STRA6LP and STRA6LP, even from the name it look like the same gene
 
+
+This gene was has a expression of 10 times greater than the 2nd highest expressed
+gene, it seesm like it may be some error, so I removed it. 
+
 ```{r message=FALSE, warning=FALSE}
 normalized_count_cleaned <- normalized_count_data[normalized_count_data$ensembl_gene_id != 'ENSG00000156508', ]
 ```
@@ -317,8 +321,8 @@ two_models_pvalues$colour[
 plot(two_models_pvalues$simple_pvalue,
      two_models_pvalues$organoid_pvalue,
      col = two_models_pvalues$colour,
-     xlab = "Simple model corrected p-values",
-     ylab ="Organoid model corrected p-values",
+     xlab = "Simple model adjusted p-values",
+     ylab ="Organoid model adjusted p-values",
      main="Simple vs Organoid Limma",
      xlim = c(0, 0.1),
      ylim = c(0, 0.1))
@@ -338,8 +342,8 @@ two_models_pvalues$colour[two_models_pvalues$ensembl_id==
 plot(two_models_pvalues$simple_pvalue,
      two_models_pvalues$organoid_pvalue,
      col = two_models_pvalues$colour,
-     xlab = "simple model corrected p-values",
-     ylab ="organoid model corrected  p-values",
+     xlab = "simple model adjusted p-values",
+     ylab ="organoid model adjusted  p-values",
      main="Simple vs Organoid Limma",
      xlim = c(0, 0.1),
      ylim = c(0, 0.1))
@@ -572,8 +576,8 @@ two_models_pvalues$colour[
 plot(two_models_pvalues$simple_pvalue,
      two_models_pvalues$organoid_pvalue,
      col = two_models_pvalues$colour,
-     xlab = "Simple model corrected p-values",
-     ylab ="Organoid model corrected p-values",
+     xlab = "Simple model adjusted p-values",
+     ylab ="Organoid model adjusted p-values",
      main="Simple vs Organoid edgeR",
      xlim=c(0, 0.1),
      ylim=c(0, 0.1))
@@ -596,8 +600,8 @@ two_models_pvalues$colour[two_models_pvalues$ensembl_id==
 plot(two_models_pvalues$simple_pvalue,
      two_models_pvalues$organoid_pvalue,
      col = two_models_pvalues$colour,
-     xlab = "simple model corrected p-values",
-     ylab ="organoid model corrected p-values",
+     xlab = "simple model adjusted p-values",
+     ylab ="organoid model adjusted p-values",
      main="Simple vs Organoid Limma",
      xlim = c(0, 0.01),
      ylim = c(0, 0.01))
@@ -857,7 +861,7 @@ pvalue_FC$colour[which(pvalue_FC$qlf_FC < 0)] <- "red"
 plot(pvalue_FC$qlf_pvalues,
      pvalue_FC$qlf_FC,
      col = pvalue_FC$colour,
-     xlab = "QLF -log10 FDR",
+     xlab = "QLF -log10 adjusted pvalue",
      ylab ="QLF log fold changes",
      main="Volcano plot",
      xlim = c(0, 10),
@@ -891,7 +895,7 @@ pvalue_FC_interest$colour[pvalue_FC$ensembl_id==ensembl_of_interest] <- "red"
 plot(pvalue_FC_interest$qlf_pvalues,
      pvalue_FC_interest$qlf_FC,
      col = pvalue_FC_interest$colour,
-     xlab = "QLF -log10 FDR",
+     xlab = "QLF -log10 adjusted pvalue",
      ylab ="QLF log fold changes",
      main="Volcano plot",
      xlim = c(2.5, 3.5),
@@ -926,6 +930,26 @@ same person.
 
 
 # Questions
+
+1.	Calculate p-values for each of the genes in your expression set. How many genes were significantly differentially expressed? What thresholds did you use and why?
+
+    In the model that does not account for organoid variability, the number of genes that where significantly differentially express was 8178. In the model that account for organoid variability, the number is 7838. From edgeR, we got 6556 genes under threshold. 
+
+    I used the threshold of 0.05, because of convention and I do not have additional knowledge (from the original paper or anywhere) about what threshold would give me best results for bulk RNA seq data from retinal organoids derived from iPSC where the testing condition is CRX-LCA and the specific mutation is I138fs48.
+
+2.	Multiple hypothesis testing - correct your p-values using a multiple hypothesis correction method. Which method did you use? And Why? How many genes passed correction?
+
+    I tried using Benjamni - Hochberg from both limma and edgeR to correct the p-value for my genes. The one that I would go with is the BH from edgeR with glmQLFTest in the simple model, since the simple model is slightly better and the result are similar (comparing edgeR and limma) but edgeR is designed bulk RNA-seq and limma is not. For number of genes passed correction, limma gave me 6174 and 5677, for the 2 models respectively, edgeR gave me 4222. 
+I used Benjamni - Hochberg, because that seems like it is the most widely used. 
+
+3.	Show the amount of differentially expressed genes using an MA Plot or a Volcano plot. Highlight genes of interest.
+
+    see volcano plot section
+
+4.	Visualize your top hits using a heatmap. Do you conditions cluster together? Explain why or why not.
+
+    My conditions do not cluster together in the sense that the test conditions and the controls do not. However, the days (e.g. expression on day 90 vs expression on day 200 vs expression on day 125/150), do cluster together, I believe this is because during development many genes get expressed and repressed, so that changes in the genes expression due to development overshadows those that are due to the disease (LCA). As well, day 125 and 150 are too close in development, compare to the other two, so there is less of a difference. 
+
 
 1.	What method did you choose and why?
 
