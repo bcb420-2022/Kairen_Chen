@@ -972,5 +972,8 @@ The third term of the ordered query, is phototransduction.
     Lastly in the Reactome, we have phototransduction cascade as a top term, which is definitely supported by the study in question. 
 
 
+# Journal Link
+
+https://github.com/bcb420-2022/Kairen_Chen/wiki/Journal-7:-Differential-Gene-expression-and-Preliminary-ORA
 
 # References
