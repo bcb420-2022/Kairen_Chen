@@ -69,15 +69,14 @@ saveRDS(normalized_counts_annot, file = "normalized_counts_annot.rds")
 ```
 
 
+Apprently there is a dupliate emseblem id
 ```{r message=FALSE, warning=FALSE}
-# Apprently there is a dupliate emseblem id
 normalized_count_data <- normalized_counts_annot[!duplicated(normalized_counts_annot[ , c("ensembl_gene_id")]),]
 ```
 
 
 ```{r message=FALSE, warning=FALSE, fig.cap='Table 1a: The duplicate gene that removed.'}
 normalized_counts_annot[duplicated(normalized_counts_annot[ , c("ensembl_gene_id")]),]
-
 ```
 Table 1a: The duplicate gene that was removed.
 
@@ -127,6 +126,8 @@ then generate a heat map
 ```{r message=FALSE, warning=FALSE, fig.cap='Figure 1: Initial heatmap for differential expression with the first 1000 genes, order by ensembl id. Only the first 1000 genes are shown due to rendering resource issues'}
 library(ComplexHeatmap)
 library(circlize)
+
+# specify the color, negative as blue, red as positive, white as transition
 if(min(heatmap_matrix) == 0){
   heatmap_col = colorRamp2(c(0, max(heatmap_matrix)), c( "white", "red"))
 
@@ -151,6 +152,7 @@ we can see each gene better
 ```{r message=FALSE, warning=FALSE, fig.cap='Figure 2: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization. Only the first 1000 genes are shown due to rendering resource issues'}
 heatmap_matrix <- t(scale(t(heatmap_matrix)))
 
+# specify the color, negative as blue, red as positive, white as transition
 if(min(heatmap_matrix) == 0){
 heatmap_col = colorRamp2(c(0, max(heatmap_matrix)), c( "white", "red"))
 } else {
@@ -186,8 +188,10 @@ colnames(samples) <- colnames(CRX_ExperimentRawCountFiltered)[3:ncol(CRX_Experim
 rownames(samples) <- c("condition", "time","patient")
 samples <- data.frame(t(samples))
 
+# make the model
 model_design <- model.matrix(~ samples$condition+samples$time)
 
+# then put everything into a matrix
 expressionMatrix <- as.matrix(normalized_count_data[,3:ncol(CRX_ExperimentRawCountFiltered)])
 rownames(expressionMatrix) <-
   normalized_count_data$ensembl_gene_id
@@ -195,7 +199,9 @@ colnames(expressionMatrix) <-
   colnames(normalized_count_data)[3:ncol(CRX_ExperimentRawCountFiltered)]
 minimalSet <- Biobase::ExpressionSet(assayData=expressionMatrix)
 
+# fit to model
 fit <- limma::lmFit(minimalSet, model_design)
+# use empirical bayes to calculate p-value
 fit2 <- limma::eBayes(fit,trend=TRUE)
 
 topfit <- limma::topTable(fit2,
@@ -244,9 +250,9 @@ experiment), and the day that the data was collected on, and
 for which organoids is the data collected from. 
 
 ```{r message=FALSE, warning=FALSE}
+# make organoids model,
 model_design_org <- model.matrix(
   ~ samples$patient + samples$condition + samples$time)
-fit_pat <- limma::lmFit(minimalSet, model_design_org)
 ```
 [@l6; @knitr]
 
@@ -254,7 +260,9 @@ Change the model, fit the data to the model, then apply empircal bayes ,
 then correct with BH
 
 ```{r message=FALSE, warning=FALSE}
+# fit to model
 fit_org <- limma::lmFit(minimalSet, model_design_org)
+# use ebayes to calculate p-value
 fit2_org <- limma::eBayes(fit_org,trend=TRUE)
 
 topfit_org <- limma::topTable(fit2_org,
@@ -295,6 +303,10 @@ length(which(output_hits_org$adj.P.Val < 0.05))
 There is actually less, but let us look at it from a graph
 
 ```{r message=FALSE, warning=FALSE, fig.cap='Figure 3: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model and the organoid model in limma, zoomed in on 0 to 0.1. Highlighting significant genes in both model as red, in simple model only as orange, in organoid model only as red, and non-significant genes as black'}
+
+# compare each genes from the adjusted pvalue from simple model to the
+# adjusted value from organoid model
+
 simple_model_pvalues <- data.frame(ensembl_id =
   output_hits$ensembl_gene_id,
   simple_pvalue=output_hits$adj.P.Val)
@@ -306,6 +318,8 @@ org_model_pvalues <-  data.frame(ensembl_id =
 two_models_pvalues <- merge(simple_model_pvalues,
   org_model_pvalues,by.x=1,by.y=1)
 
+# significant simple model is orange, significant organoid model is blue, 
+# significant in both is red, everything else is black
 two_models_pvalues$colour <- "black"
 
 two_models_pvalues$colour[
@@ -334,6 +348,9 @@ To determine which model is more appropriate, we take a look at p-value of the
 gene of interest, CRX. 
 
 ```{r message=FALSE, warning=FALSE, fig.cap='Figure 4: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model and the organoid model in limma, zoomed in on 0 to 0.1. Highlighting only the gene of interest, CRX as red'}
+
+# same thing as above, but looking at zoomed in to look at the gene of interest
+
 ensembl_of_interest <- normalized_count_data$ensembl_gene_id[
   which(normalized_count_data$hgnc_symbol == "CRX")]
 two_models_pvalues$colour <- "grey"
@@ -370,11 +387,12 @@ in the simple model
 top_hits <- output_hits$ensembl_gene_id[
   output_hits$adj.P.Val<0.05]
 
+# only picking top hits
 heatmap_matrix_tophits <- t(
   scale(t(heatmap_matrix[
 which(rownames(heatmap_matrix) %in% top_hits),])))
 
-
+# same color setting as above
 if(min(heatmap_matrix_tophits) == 0){
 heatmap_col = colorRamp2(c( 0, max(heatmap_atrix_tophits)),
                              c( "white", "red"))
@@ -406,6 +424,7 @@ Let us not cluster the genes but group controls and experiments together
 top_hits <- output_hits$ensembl_gene_id[
   output_hits$adj.P.Val<0.05]
 
+# only picking top hits
 heatmap_matrix_tophits <- t(
   scale(t(heatmap_matrix[
 which(rownames(heatmap_matrix) %in% top_hits),])))
@@ -417,6 +436,7 @@ c(
  )
 ]
 
+# same color setting as above
 if(min(heatmap_matrix_tophits) == 0){
 heatmap_col = colorRamp2(c( 0, max(heatmap_matrix_tophits)),
                              c( "white", "red"))
@@ -446,18 +466,22 @@ The controls also do not look like each other.
 
 Then again look at top hits with less than 0.01 pvalue
 ```{r message=FALSE, warning=FALSE, fig.cap='Figure 7: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for hits with corrected p-value smaller than 0.01 using the simple model in limma, without clustering, and group control and experiment together, respectively. Only the first 1000 genes are shown due to rendering resource issues'}
+
+# only top hits (less than 0.01)
 top_hits <- output_hits$ensembl_gene_id[
   output_hits$adj.P.Val < 0.01]
 
 heatmap_matrix_tophits <- t(
 scale(t(heatmap_matrix[which(rownames(heatmap_matrix) %in% top_hits),])))
 
+# seperate based on control vs test
 heatmap_matrix_tophits <- heatmap_matrix_tophits[,
        c(grep(colnames(heatmap_matrix_tophits),pattern = "\\CRXLCA"),
          grep(colnames(heatmap_matrix_tophits),pattern = "\\Control"))]
 
 nrow(heatmap_matrix_tophits)
 
+# same color setting as above
 if(min(heatmap_matrix_tophits) == 0){
 heatmap_col = colorRamp2(c( 0, max(heatmap_matrix_tophits)),
                              c( "white", "red"))
@@ -561,6 +585,8 @@ org_model_pvalues_qlf <-  data.frame(ensembl_id =
 two_models_pvalues <- merge(simple_model_pvalues_qlf,
   org_model_pvalues_qlf, by.x=1, by.y=1)
 
+
+# same color setting as above
 two_models_pvalues$colour <- "black"
 
 two_models_pvalues$colour[
@@ -592,6 +618,9 @@ To determine which model is more appropriate, we take a look at p=value of the
 gene of interest, CRX. 
 
 ```{r message=FALSE, warning=FALSE, fig.cap='Figure 9: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model and the organoid model in glmQLFit, zoomed in on 0-0.01. Highlighting only the gene of interest, CRX'}
+# same as above, but zoomed in to show gene of interest
+
+
 ensembl_of_interest <- normalized_count_data$ensembl_gene_id[
   which(normalized_count_data$hgnc_symbol == "CRX")]
 two_models_pvalues$colour <- "grey"
@@ -636,6 +665,7 @@ two_models_pvalues <- merge(qlf_simple_model_pvalues,
                             limma_simple_model_pvalues,
                             by.x=1,by.y=1)
 
+# same color setting as above
 two_models_pvalues$colour <- "black"
 
 two_models_pvalues$colour[two_models_pvalues$qlf_simple_pvalue
@@ -663,6 +693,7 @@ Figure 10: Showing each gene on a graph where the coordinates is the corrected p
 For some reason, this is all over the place
 
 ```{r message=FALSE, warning=FALSE, fig.cap='Figure 11: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model in glmQLFit and in limma, zoomed in on 0-0.02. Highlighting only the gene of interest, CRX'}
+# zoomed in to show 
 ensembl_of_interest <- normalized_count_data$ensembl_gene_id[
   which(normalized_count_data$hgnc_symbol == "CRX")]
 
@@ -831,6 +862,8 @@ write.table(x=first5000_genes,
 
 # Results of G:profiler
 
+I only included geneset that have between 5-200 genes
+
 ![](./wholelist_ordered.png)
 
 ![](./downregulated_ordered.png)
@@ -939,8 +972,7 @@ same person.
 
 2.	Multiple hypothesis testing - correct your p-values using a multiple hypothesis correction method. Which method did you use? And Why? How many genes passed correction?
 
-    I tried using Benjamni - Hochberg from both limma and edgeR to correct the p-value for my genes. The one that I would go with is the BH from edgeR with glmQLFTest in the simple model, since the simple model is slightly better and the result are similar (comparing edgeR and limma) but edgeR is designed bulk RNA-seq and limma is not. For number of genes passed correction, limma gave me 6174 and 5677, for the 2 models respectively, edgeR gave me 4222. 
-I used Benjamni - Hochberg, because that seems like it is the most widely used. 
+    I tried using Benjamni - Hochberg from both limma and edgeR to correct the p-value for my genes. The one that I would go with is the BH from edgeR with glmQLFTest in the simple model, since the simple model is slightly better and the result are similar (comparing edgeR and limma) but edgeR is designed bulk RNA-seq and limma is not. For number of genes passed correction, limma gave me 6174 and 5677, for the 2 models respectively, edgeR gave me 4222. I used Benjamni - Hochberg, because that seems like it is the most widely used, and that was the default method for multiple hypothesis correcting in both limma toptable and edgeR toptags. 
 
 3.	Show the amount of differentially expressed genes using an MA Plot or a Volcano plot. Highlight genes of interest.
 
@@ -953,7 +985,7 @@ I used Benjamni - Hochberg, because that seems like it is the most widely used.
 
 1.	What method did you choose and why?
 
-    I choose g:profiler as the method for over representation analysis, since I already have experience using it from the g:profiler assignment (which makes it easier to use) and Professor Isserlin seems to recommend it due to the fact that she asked us to use g:profiler for the homework assignment. As well, the pvalue is shown very clearly on g:profiler with lots of colors. 
+    I choose g:profiler as the method for over representation analysis, since I already have experience using it from the g:profiler assignment (which makes it easier to use) and Professor Isserlin seems to recommend it due to the fact that she asked us to use g:profiler for the homework assignment. As well, the pvalue is shown very clearly on g:profiler with lots of colors and the result are quite interpretable
 
 2.	What annotation data did you use and why? What version of the annotation are you using?
 
