@@ -893,69 +893,66 @@ I only included geneset that have between 5-200 genes
 # Volcano Plot
 
 ```{r message=FALSE, warning=FALSE}
-qlf_pvalues <- data.frame(
-          ensembl_id = rownames(qlf_output_hits$table),
-          qlf_pvalues = -log10(qlf_output_hits$table$FDR))
+pvalues <- data.frame(
+          ensembl_id = output_hits$ensembl_gene_id,
+          pvalues = -log10(output_hits$adj.P.Val))
 
-qlf_FC <-  data.frame(
-          ensembl_id = rownames(qlf_output_hits$table),
-          qlf_FC = qlf_output_hits$table$logFC)
+FC <-  data.frame(
+          ensembl_id = output_hits$ensembl_gene_id,
+          FC = output_hits$logFC)
 
-pvalue_FC <- merge(qlf_pvalues,
-                            qlf_FC,
+pvalue_FC <- merge(pvalues,
+                            FC,
                             by.x=1,by.y=1)
 
 pvalue_FC$colour <- "black"
 
-pvalue_FC$colour[which(pvalue_FC$qlf_FC > 0)] <- "blue"
+pvalue_FC$colour[which(pvalue_FC$pvalues > 0)] <- "blue"
 
-pvalue_FC$colour[which(pvalue_FC$qlf_FC < 0)] <- "red"
+pvalue_FC$colour[which(pvalue_FC$FC < 0)] <- "red"
 
-plot(pvalue_FC$qlf_pvalues,
-     pvalue_FC$qlf_FC,
+plot(pvalue_FC$pvalues,
+     pvalue_FC$FC,
      col = pvalue_FC$colour,
      xlab = "QLF -log10 adjusted pvalue",
      ylab ="QLF log fold changes",
-     main="Volcano plot",
+     main="Volcano plot from limma",
      xlim = c(0, 10),
-     ylim = c(-3, 3))
+     ylim = c(-5, 5))
 ```
-Figure 14: volcano plot of all genes, zoomed in to -2 to 2 for logFC, and 0 to
-10 for FDR to show the charateristic U shape.
+Figure 14: volcano plot of all genes, zoomed in to -5 to 5 for logFC, and 0 to
+10 for FDR to show the characteristic U shape.
 
-There is visual separation of upregulated genes and downregulated gene, we can 
-clearly see the 
+There is visual separation of upregulated genes and downregulated gene
 
 ```{r message=TRUE, warning=FALSE}
 
 
-qlf_pvalues_interest <- data.frame(
-          ensembl_id = rownames(qlf_output_hits$table),
-          qlf_pvalues = -log10(qlf_output_hits$table$FDR))
+pvalues_int <- data.frame(
+          ensembl_id = output_hits$ensembl_gene_id,
+          pvalues = -log10(output_hits$adj.P.Val))
 
-qlf_FC_interest <-  data.frame(
-          ensembl_id = rownames(qlf_output_hits$table),
-          qlf_FC = qlf_output_hits$table$logFC)
+FC_int <-  data.frame(
+          ensembl_id = output_hits$ensembl_gene_id,
+          FC = output_hits$logFC)
 
-pvalue_FC_interest <- merge(qlf_pvalues_interest,
-                            qlf_FC_interest,
+pvalue_FC_interest <- merge(pvalues_int,
+                            FC_int,
                             by.x=1,by.y=1)
 
 pvalue_FC_interest$colour <- "grey"
 
 pvalue_FC_interest$colour[pvalue_FC$ensembl_id==ensembl_of_interest] <- "red"
 
-plot(pvalue_FC_interest$qlf_pvalues,
-     pvalue_FC_interest$qlf_FC,
+plot(pvalue_FC_interest$pvalues,
+     pvalue_FC_interest$FC,
      col = pvalue_FC_interest$colour,
      xlab = "QLF -log10 adjusted pvalue",
      ylab ="QLF log fold changes",
-     main="Volcano plot",
-     xlim = c(2.5, 3.5),
-     ylim = c(-1, 1))
+     main="Volcano plot")
 ```
-Figure 15: volcano plot of all genes, zoomed in to -1 to 1 for logFC, and 2.5 to
-3.5 for FDR so that the gene of interest does not get covered by other genes.
+Figure 15: volcano plot of all genes, not zoomed in to show that gene of interest
+is not expressed
 
 
 # Discussion 
