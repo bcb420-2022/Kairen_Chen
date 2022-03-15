@@ -1,19 +1,22 @@
 ---
-title: "BCB420 Assignment 2 Report: Differential Gene expression and Preliminary ORA"
-subtitle: "Journal Article: Gene therapy of dominant CRX-Leber congenital amaurosis using patient retinal organoids"
+title: 'BCB420 Assignment 2 Report: Differential Gene expression and Preliminary ORA'
 author: "Kai Ren Chen"
-data: "r Sys.Date()"
-output: 
+subtitle: 'Journal Article: Gene therapy of dominant CRX-Leber congenital amaurosis
+  using patient retinal organoids'
+output:
   html_notebook:
-      toc: true
-      toc_depth: 2
-      fig_caption: true
+    toc: yes
+    toc_depth: 2
+  html_document:
+    toc: yes
+    toc_depth: '2'
+    df_print: paged
 bibliography: a2citation.bib
-link-citations: true
+link-citations: yes
 ---
 
 # Introduction
-Cone-rod homeobox (CRX) mutations  can cause dominant Leber congenital amaurosis
+cone rod homeobox (CRX) mutations  can cause dominant Leber congenital amaurosis
 (LCA), a genetic disorder that can lead to blindness. Normally LCA is caused
 by recessive genes, but on rarer cases, it can be cause by dominant genes, such
 as CRX. We are look at Bulk RNA-seq data from retinal organoids derived from
@@ -24,8 +27,17 @@ transcribed. The data source is GSE152939. The author is trying to show that a
 deno-associated virus gene therapy can restore RNA expression of CRX. However,
 although this study is about gene therapy, the data that show rescued expression
 is in single cell RNA-seq data, which is not in the scope of this report, so it
-was not included. [@CRX]
+was not included. The data was collected from 6 retinal organoids, for 90 days,
+125 days, 150 days and 200 day after the iPSCs start to differentiate; 3 of the
+organoids were from LCA patient, and 3 organoids were from their healthy parent.
+[@CRX]
 
+Note that the vast majority of code in this report are take from BCB420 lecture
+[@l4; @l5; @l6; @l7] with minor modification to make it appropriate for my data.
+
+Note 2: I cannot put bibtex inline citatation within the codechunk, so it is left
+at the end of the code chunk, and sometimes there is a figure, so the figure
+legend/caption may be directly followed by the inline citation
 
 # Assignment 1 processing 
 
@@ -33,7 +45,7 @@ Lets us first do all the processing that was done in assignment 1
 
 
 ```{r message=FALSE, warning=FALSE}
-source("~/projects/assignment_functions.r")
+source("./assignment_functions.r")
 supplementaryFiles <- downloadSupplementaryFiles("GSE152939")
 CRX_ExperimentRawCount <- readFile(supplementaryFiles)
 CRX_ExperimentRawCountFiltered <- filterOutLowCount(CRX_ExperimentRawCount)
@@ -63,10 +75,17 @@ normalized_count_data <- normalized_counts_annot[!duplicated(normalized_counts_a
 ```
 
 
-```{r message=FALSE, warning=FALSE, fig.cap='Table 1a: The duplicate gene that removed . Table 1b: showing the two gene has the same ensembl gene id, but not exactly the same hgnc symbol'}
+```{r message=FALSE, warning=FALSE, fig.cap='Table 1a: The duplicate gene that removed.'}
 normalized_counts_annot[duplicated(normalized_counts_annot[ , c("ensembl_gene_id")]),]
+
+```
+Table 1a: The duplicate gene that was removed.
+
+
+```{r message=FALSE, warning=FALSE, fig.cap='Table 1b: showing the two gene has the same ensembl gene id, but not exactly the same hgnc symbol'}
 normalized_counts_annot[which(normalized_counts_annot$ensembl_gene_id == 'ENSG00000254876'), ]
 ```
+Table 1b: showing the two gene has the same ensembl gene id, but not exactly the same hgnc symbol
 
 I find the one that is consider as duplicate, then find the one that has the same enmselble gene id as it. 
 For some reason this ensembl gene id maps to 2 hgnc symbols, SUGT1P4-STRA6LP and STRA6LP, even from the name it look like the same gene
@@ -90,6 +109,8 @@ colnames(heatmap_matrix) <- colnames(normalized_count_cleaned[, 3:ncol(normalize
 heatmap_matrix
 saveRDS(heatmap_matrix, file = "heatmap_list.rds")
 ```
+Table 2: The first 1000 row of the filtered normalized data for all samples, ordered by ensembl id
+
 [@l6]
 
 ```{r message=FALSE, warning=FALSE}
@@ -115,14 +136,12 @@ Heatmap(as.matrix(heatmap_matrix[1:1000,]),
       show_row_names = FALSE, show_heatmap_legend = TRUE,
       raster_resize_mat = TRUE)
 ```
-
-
+Figure 1: Initial heatmap for differential expression with the first 1000 genes, order by ensembl id. Only the first 1000 genes are shown due to rendering resource issues
 [@l6; @heatmap; @color]
 
 
 
-
-but with row normalization (i.e. the kind with subtract the mean divided by standard deviation)
+Now with row normalization (i.e. the kind with subtract the mean divided by standard deviation)
 we can see each gene better
 
 ```{r message=FALSE, warning=FALSE, fig.cap='Figure 2: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization. Only the first 1000 genes are shown due to rendering resource issues'}
@@ -139,8 +158,7 @@ Heatmap(as.matrix(heatmap_matrix[1:1000,]),
       col=heatmap_col,show_column_names = TRUE,
       show_row_names = FALSE,show_heatmap_legend = TRUE)
 ```
-
-
+Figure 2: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization. Only the first 1000 genes are shown due to rendering resource issues
 [@l6; @heatmap; @color]
 
 you can see that the samples are more similar to each other at the same time point than whether or not it is control, I think that is reasonable since many gene get simulated and repressed during development, so the genes that are on is different from one development time point, to another. 
@@ -149,24 +167,28 @@ you can see that the samples are more similar to each other at the same time poi
 
 We will be fitting the data to the a linear model and using empirical bayes to 
 calculate p-values. Then we will using Benjamni-Hochberg for multiple hypothesis
-testing, for correcting our p-values
+testing, for correcting our p-values.
 
 ## Simple Model
 
+The simple model is where the model accounts for the condition (control vs 
+experiment), and the day that the data was collected on, but not account 
+for which organoids is the data collected from. 
+
 ```{r message=FALSE, warning=FALSE, fig.cap='Table 3: Showing for ecah sample, which organoid, at what time, and what condition it is'}
-samples <- data.frame(lapply(colnames(CRX_ExperimentRawCountFiltered)[3:28], FUN=function(x){unlist(strsplit(x, split = "\\_"))[c(1, 2, 3)]}))
+samples <- data.frame(lapply(colnames(CRX_ExperimentRawCountFiltered)[3:ncol(CRX_ExperimentRawCountFiltered)], FUN=function(x){unlist(strsplit(x, split = "\\_"))[c(1, 2, 3)]}))
 samples
-colnames(samples) <- colnames(CRX_ExperimentRawCountFiltered)[3:28]
+colnames(samples) <- colnames(CRX_ExperimentRawCountFiltered)[3:ncol(CRX_ExperimentRawCountFiltered)]
 rownames(samples) <- c("condition", "time","patient")
 samples <- data.frame(t(samples))
 
 model_design <- model.matrix(~ samples$condition+samples$time)
 
-expressionMatrix <- as.matrix(normalized_count_data[,3:28])
+expressionMatrix <- as.matrix(normalized_count_data[,3:ncol(CRX_ExperimentRawCountFiltered)])
 rownames(expressionMatrix) <-
   normalized_count_data$ensembl_gene_id
 colnames(expressionMatrix) <-
-  colnames(normalized_count_data)[3:28]
+  colnames(normalized_count_data)[3:ncol(CRX_ExperimentRawCountFiltered)]
 minimalSet <- Biobase::ExpressionSet(assayData=expressionMatrix)
 
 fit <- limma::lmFit(minimalSet, model_design)
@@ -184,12 +206,16 @@ output_hits <- merge(normalized_count_data[,1:2],
 #sort by pvalue
 output_hits <- output_hits[order(output_hits$P.Value),]
 ```
+Table 3: Showing for ecah sample, which organoid, at what time, and what condition it is
+
 [@l6; @biobase; @limma]
 
 
 ```{r message=FALSE, warning=FALSE, fig.cap='Table 4: Show the limma output after fitting the data to the simple model, calculating the p-value, and correcting the p-value. This is only showing the first 10, ordered by p value. Note that the p value and adjusted p values are not actually 0, they are just rounded to 0'}
 knitr::kable(output_hits[1:10,1:7],type="html",row.names = FALSE)
 ```
+Table 4: Show the limma output after fitting the data to the simple model, calculating the p-value, and correcting the p-value. This is only showing the first 10, ordered by p value. Note that the p value and adjusted p values are not actually 0, they are just rounded to 0
+
 [@l6; @knitr]
 
 This is how many genes that have pvalue under 0.05
@@ -209,6 +235,9 @@ length(which(output_hits$adj.P.Val < 0.05))
 
 ## Organoid Model
 
+The organoid model is where the model accounts for the condition (control vs 
+experiment), and the day that the data was collected on, and 
+for which organoids is the data collected from. 
 
 ```{r message=FALSE, warning=FALSE}
 model_design_org <- model.matrix(
@@ -222,9 +251,9 @@ then correct with BH
 
 ```{r message=FALSE, warning=FALSE}
 fit_org <- limma::lmFit(minimalSet, model_design_org)
-fit2_org <- limma::eBayes(fit_pat,trend=TRUE)
+fit2_org <- limma::eBayes(fit_org,trend=TRUE)
 
-topfit_org <- limma::topTable(fit2_pat,
+topfit_org <- limma::topTable(fit2_org,
                    coef=ncol(model_design_org),
                    adjust.method = "BH",
                    number = nrow(expressionMatrix))
@@ -242,6 +271,8 @@ output_hits_org <- output_hits_org[order(output_hits_org$P.Value),]
 ```{r message=FALSE, warning=FALSE, fig.cap='Table 5: Show the limma output after fitting the data to the organoid model, calculating the p-value, and correcting the p-value. This is only showing the first 10, ordered by p-value. Note that the p value and adjusted p values are not actually 0, they are just rounded to 0'}
 knitr::kable(output_hits_org[1:10,1:7],type="html",row.names = FALSE)
 ```
+Table 5: Show the limma output after fitting the data to the organoid model, calculating the p-value, and correcting the p-value. This is only showing the first 10, ordered by p-value. Note that the p value and adjusted p values are not actually 0, they are just rounded to 0
+
 [@l6; @knitr]
 
 
@@ -292,7 +323,7 @@ plot(two_models_pvalues$simple_pvalue,
      xlim = c(0, 0.1),
      ylim = c(0, 0.1))
 ```
-
+Figure 3: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model and the organoid model in limma, zoomed in on 0 to 0.1. Highlighting significant genes in both model as red, in simple model only as orange, in organoid model only as red, and non-significant genes as black
 [@l6]
 
 To determine which model is more appropriate, we take a look at p-value of the
@@ -318,7 +349,7 @@ points(two_models_pvalues[which(
 legend(0,1,legend=c("CRX","rest"),
        fill=c("red","grey"),cex = 0.7)
 ```
-
+Figure 4: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model and the organoid model in limma, zoomed in on 0 to 0.1. Highlighting only the gene of interest, CRX as red
 [@l6]
 
 The simple model is better, I believe that is the because there are minimal 
@@ -360,7 +391,7 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                                )
 
 ```
-
+Figure 5: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for significant genes by corrected p-value using the simple model in limma. Only the first 1000 genes are shown due to rendering resource issues
 [@l6]
 
 
@@ -380,8 +411,6 @@ c(
   grep(colnames(heatmap_matrix_tophits), pattern = "\\Control")
  )
 ]
-
-nrow(heatmap_matrix_tophits)
 
 if(min(heatmap_matrix_tophits) == 0){
 heatmap_col = colorRamp2(c( 0, max(heatmap_matrix_tophits)),
@@ -403,6 +432,7 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                                show_heatmap_legend = TRUE,
                                )
 ```
+Figure 6: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for significant genes based on corrected p-value using the simple model in limma, without clustering, and group control and experiment together, respectively. Only the first 1000 genes are shown due to rendering resource issues
 [@l6]
 
 We can clearly tell that the test condition do not look like each other.
@@ -437,13 +467,17 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                 col=heatmap_col,show_column_names = TRUE,
                 show_row_names = FALSE,show_heatmap_legend = TRUE)
 ```
-
+Figure 7: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for hits with corrected p-value smaller than 0.01 using the simple model in limma, without clustering, and group control and experiment together, respectively. Only the first 1000 genes are shown due to rendering resource issues
 [@l6; @heatmap; @color]
 
 
 # Heatmap with tophits from edgeR
 
-## Simple model
+## Simple Model
+
+The simple model is where the model accounts for the condition (control vs 
+experiment), and the day that the data was collected on, but not account 
+for which organoids is the data collected from. 
 
 ```{r message=FALSE, warning=FALSE}
 filtered_data_matrix <- as.matrix(CRX_ExperimentRawCountFiltered[,3:28])
@@ -459,6 +493,8 @@ fit <- edgeR::glmQLFit(d, model_design)
 qlf.pos_vs_neg <- edgeR::glmQLFTest(fit, coef='samples$conditionCRXLCA')
 knitr::kable(edgeR::topTags(qlf.pos_vs_neg), type="html",row.names = FALSE)
 ```
+
+
 [@l6; @edger; @knitr]
 
 Even though this say FDR, but since we are using the same multiple hypothesis 
@@ -473,6 +509,10 @@ length(which(qlf_output_hits$table$FDR < 0.05))
 [@l6; @edger]
 
 ## Organoid model
+
+The organoid Model is where the model accounts for the condition (control vs 
+experiment), and the day that the data was collected on, and 
+for which organoids is the data collected from. 
 
 ```{r warning=FALSE}
 filtered_data_matrix <- as.matrix(CRX_ExperimentRawCountFiltered[,3:28])
@@ -489,6 +529,8 @@ fit_org <- edgeR::glmQLFit(d_org, model_design_org)
 qlf.pos_vs_neg <- edgeR::glmQLFTest(fit_org, coef='samples$conditionCRXLCA')
 knitr::kable(edgeR::topTags(qlf.pos_vs_neg), type="html",row.names = FALSE)
 ```
+
+
 [@l6; @knitr; @edger]
 
 The first one is gene before correction, and second one is after correction
@@ -535,7 +577,7 @@ plot(two_models_pvalues$simple_pvalue,
      xlim=c(0, 0.1),
      ylim=c(0, 0.1))
 ```
-
+Figure 8: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model and the organoid model in glmQLFit, zoomed in on 0-0.1. Highlighting significant genes in both model as red, in simple model only as orange, in organoid model only as red, and non-significant genes as black
 [@l6]
 
 The majority of genes that have less than 0.05 p-value in either model, has less than 0.05 
@@ -564,7 +606,7 @@ points(two_models_pvalues[which(
 legend(0,1,legend=c("CRX","rest"),
        fill=c("red","grey"),cex = 0.7)
 ```
-
+Figure 9: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model and the organoid model in glmQLFit, zoomed in on 0-0.01. Highlighting only the gene of interest, CRX
 [@l6]
 
 The simple model is better, I believe this is still due to the same reason that,
@@ -585,8 +627,8 @@ limma_simple_model_pvalues <-  data.frame(
           ensembl_id = output_hits$ensembl_gene_id,
           limma_simple_pvalue = output_hits$adj.P.Val)
 
-two_models_pvalues <- merge(qlf_pat_model_pvalues,
-                            limma_pat_model_pvalues,
+two_models_pvalues <- merge(qlf_simple_model_pvalues,
+                            limma_simple_model_pvalues,
                             by.x=1,by.y=1)
 
 two_models_pvalues$colour <- "black"
@@ -610,7 +652,7 @@ plot(two_models_pvalues$qlf_simple_pvalue,
      xlim = c(0, 1),
      ylim = c(0, 1))
 ```
-
+Figure 10: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model in glmQLFit and in limma. Highlighting significant genes in both model as red, in simple model only as orange, in organoid model only as red, and non-significant genes as black
 [@l6]
 
 For some reason, this is all over the place
@@ -637,7 +679,7 @@ points(two_models_pvalues[
   two_models_pvalues$ensembl_id==ensembl_of_interest,2:3],
        pch=24,  col="red", cex=1.5)
 ```
-
+Figure 11: Showing each gene on a graph where the coordinates is the corrected p-values using the simple model in glmQLFit and in limma, zoomed in on 0-0.02. Highlighting only the gene of interest, CRX
 [@l6]
 
 It looks like QLF is better than limma, and that does make sense, since limma
@@ -678,7 +720,7 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                                show_heatmap_legend = TRUE,
                                )
 ```
-
+Figure 12: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for significant genes using the simple model in glmQLFit. Only the first 1000 genes are shown due to rendering resource issues
 [@l6; @heatmap; @color]
 
 compare to the heatmap from lemma, the day 200 do not cluster together, 
@@ -719,6 +761,7 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                                show_row_names = FALSE,
                                show_heatmap_legend = TRUE)
 ```
+Figure 13: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for significant genes using the simple model in glmQLFit, without clustering, and group control and experiment together, respectively. Only the first 1000 genes are shown due to rendering resource issues
 [@l6; @heatmap; @color]
 
 # Over representation analysis
@@ -732,6 +775,9 @@ length(which(qlf_output_hits$table$FDR < 0.05
              & qlf_output_hits$table$logFC < 0))
 ```
 [@l7]
+
+I only outputted the first 5000 genes, because g:profiler will crash with too 
+many genes. 
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -749,7 +795,7 @@ downregulated_genes <- qlf_output_hits_withgn$gene.id[
   which(qlf_output_hits_withgn$FDR < 0.05 
              & qlf_output_hits_withgn$logFC < 0)]
 
-all_genes <- qlf_output_hits_withgn$ens.id
+first5000_genes <- qlf_output_hits_withgn$gene.id[c(1:5000)]
 
 if (!file.exists("data")) {
  dir.create("data")
@@ -763,7 +809,7 @@ write.table(x=downregulated_genes,
             file=file.path("data","CRX_downregulated_genes.txt"),sep = "\t",
             row.names = FALSE, col.names = FALSE, quote = FALSE)
 
-write.table(x=all_genes,
+write.table(x=first5000_genes,
             file=file.path("data","CRX_ranked_genelist.txt"),
             sep = "\t",
             row.names = FALSE,
@@ -773,6 +819,34 @@ write.table(x=all_genes,
 ```
 [@l7]
 
+
+# Results of G:profiler
+
+
+
+
+# Discussion 
+
+We have 3 factors that we can include in our model design. The day that the day
+was collected, which organoid was it collected from, is it experiment or control
+that we are collecting from?
+
+We do have to include the last one (experiment vs control), or else we are not
+getting the differential expression for the question that the authors is asking.
+[@CRX]. Although at first, the control and experiments do not differ that much,
+but by day 200 they the controls cluster together more than the organoids, 
+so is the experiments. I believe we can conclude that, by day 200, the difference
+from CRX, is more than the organoid variability. 
+
+Looking at the MDS plot from A1, we can tell that the day it was collected from
+changes the data by a lot, since the RNA is taken from retinal organoids in 
+development, and gene expression for cell in development changes from stage
+to stage. Therefore we should include this.
+
+Still look at the MDS plot from A1, which organoid it was collected from does
+not make much of a difference, this is probably because that all control
+organoids are from the same person, and all experiment organoids are from the
+same person. 
 
 
 # Questions
