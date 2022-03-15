@@ -134,7 +134,7 @@ Heatmap(as.matrix(heatmap_matrix[1:1000,]),
       show_row_dend = TRUE, show_column_dend = TRUE,
       col=heatmap_col, show_column_names = TRUE,
       show_row_names = FALSE, show_heatmap_legend = TRUE,
-      raster_resize_mat = TRUE)
+      raster_resize_mat = TRUE, heatmap_legend_param = list(title = "Initial Heatmap"))
 ```
 Figure 1: Initial heatmap for differential expression with the first 1000 genes, order by ensembl id. Only the first 1000 genes are shown due to rendering resource issues
 [@l6; @heatmap; @color]
@@ -156,7 +156,7 @@ heatmap_col = colorRamp2(c(min(heatmap_matrix), 0, max(heatmap_matrix)), c("blue
 Heatmap(as.matrix(heatmap_matrix[1:1000,]),
       show_row_dend = TRUE,show_column_dend = TRUE,
       col=heatmap_col,show_column_names = TRUE,
-      show_row_names = FALSE,show_heatmap_legend = TRUE)
+      show_row_names = FALSE,show_heatmap_legend = TRUE, heatmap_legend_param = list(title = " Heatmap with row normalization"))
 ```
 Figure 2: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization. Only the first 1000 genes are shown due to rendering resource issues
 [@l6; @heatmap; @color]
@@ -387,7 +387,8 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                                col=heatmap_col,
                                show_column_names = TRUE,
                                show_row_names = FALSE,
-                               show_heatmap_legend = TRUE,
+                               show_heatmap_legend = TRUE, 
+        heatmap_legend_param = list(title = "Heatmap from Limma")
                                )
 
 ```
@@ -430,7 +431,7 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                                show_column_names = TRUE,
                                show_row_names = FALSE,
                                show_heatmap_legend = TRUE,
-                               )
+                               heatmap_legend_param = list(title = "Limma Heatmap without clustering"))
 ```
 Figure 6: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for significant genes based on corrected p-value using the simple model in limma, without clustering, and group control and experiment together, respectively. Only the first 1000 genes are shown due to rendering resource issues
 [@l6]
@@ -465,7 +466,7 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                 cluster_rows = TRUE,  show_row_dend = TRUE,
                 cluster_columns = FALSE,show_column_dend = FALSE,
                 col=heatmap_col,show_column_names = TRUE,
-                show_row_names = FALSE,show_heatmap_legend = TRUE)
+                show_row_names = FALSE,show_heatmap_legend = TRUE, heatmap_legend_param = list(title = "Limma Heatmap, no cluster, 0.1"))
 ```
 Figure 7: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for hits with corrected p-value smaller than 0.01 using the simple model in limma, without clustering, and group control and experiment together, respectively. Only the first 1000 genes are shown due to rendering resource issues
 [@l6; @heatmap; @color]
@@ -717,7 +718,8 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                                col=heatmap_col,
                                show_column_names = TRUE,
                                show_row_names = FALSE,
-                               show_heatmap_legend = TRUE,
+                               show_heatmap_legend = TRUE, 
+        heatmap_legend_param = list(title = "glmQLFit Heatmap")
                                )
 ```
 Figure 12: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for significant genes using the simple model in glmQLFit. Only the first 1000 genes are shown due to rendering resource issues
@@ -759,7 +761,8 @@ Heatmap(as.matrix(heatmap_matrix_tophits[1:1000,]),
                                col=heatmap_col,
                                show_column_names = TRUE,
                                show_row_names = FALSE,
-                               show_heatmap_legend = TRUE)
+                               show_heatmap_legend = TRUE, 
+        heatmap_legend_param = list(title = "glmQLFit Heatmap no cluster"))
 ```
 Figure 13: Heatmap for differential expression of the first 1000 genes, ordered by ensembl id, after row normalization for significant genes using the simple model in glmQLFit, without clustering, and group control and experiment together, respectively. Only the first 1000 genes are shown due to rendering resource issues
 [@l6; @heatmap; @color]
@@ -767,7 +770,9 @@ Figure 13: Heatmap for differential expression of the first 1000 genes, ordered 
 # Over representation analysis
 
 
-This is the number of genes upregulated and downregulated
+This is the number of genes upregulated and downregulated (I did check the model
+design, control was labeled as 0 and experiment/CRX was labeled as 1), so 
+this does mean that that is upregulated and downregulated in experiment.
 ```{r message=FALSE, warning=FALSE}
 length(which(qlf_output_hits$table$FDR < 0.05 
              & qlf_output_hits$table$logFC > 0))
@@ -822,7 +827,81 @@ write.table(x=first5000_genes,
 
 # Results of G:profiler
 
+![](./wholelist_unordered.png)
 
+![](./wholelist_ordered.png)
+![](./downregulated_unordered.png)
+![](./downregulated_ordered.png)
+
+![](./upregulated_unordered.png)
+![](./upregulated_ordered.png)
+
+# Volcano Plot
+
+```{r}
+qlf_pvalues <- data.frame(
+          ensembl_id = rownames(qlf_output_hits$table),
+          qlf_pvalues = -log10(qlf_output_hits$table$FDR))
+
+qlf_FC <-  data.frame(
+          ensembl_id = rownames(qlf_output_hits$table),
+          qlf_FC = qlf_output_hits$table$logFC)
+
+pvalue_FC <- merge(qlf_pvalues,
+                            qlf_FC,
+                            by.x=1,by.y=1)
+
+pvalue_FC$colour <- "black"
+
+pvalue_FC$colour[which(pvalue_FC$qlf_FC > 0)] <- "blue"
+
+pvalue_FC$colour[which(pvalue_FC$qlf_FC < 0)] <- "red"
+
+plot(pvalue_FC$qlf_pvalues,
+     pvalue_FC$qlf_FC,
+     col = pvalue_FC$colour,
+     xlab = "QLF -log10 FDR",
+     ylab ="QLF log fold changes",
+     main="Volcano plot",
+     xlim = c(0, 10),
+     ylim = c(-3, 3))
+```
+Figure 14: volcano plot of all genes, zoomed in to -2 to 2 for logFC, and 0 to
+10 for FDR to show the charateristic U shape.
+
+There is visual separation of upregulated genes and downregulated gene, we can 
+clearly see the 
+
+```{r}
+
+
+qlf_pvalues_interest <- data.frame(
+          ensembl_id = rownames(qlf_output_hits$table),
+          qlf_pvalues = -log10(qlf_output_hits$table$FDR))
+
+qlf_FC_interest <-  data.frame(
+          ensembl_id = rownames(qlf_output_hits$table),
+          qlf_FC = qlf_output_hits$table$logFC)
+
+pvalue_FC_interest <- merge(qlf_pvalues_interest,
+                            qlf_FC_interest,
+                            by.x=1,by.y=1)
+
+pvalue_FC_interest$colour <- "grey"
+
+pvalue_FC_interest$colour[pvalue_FC$ensembl_id==ensembl_of_interest] <- "red"
+
+plot(pvalue_FC_interest$qlf_pvalues,
+     pvalue_FC_interest$qlf_FC,
+     col = pvalue_FC_interest$colour,
+     xlab = "QLF -log10 FDR",
+     ylab ="QLF log fold changes",
+     main="Volcano plot",
+     xlim = c(2.5, 3.5),
+     ylim = c(-1, 1))
+```
+Figure 15: volcano plot of all genes, zoomed in to -1 to 1 for logFC, and 2.5 to
+3.5 for FDR so that the gene of interest does not get covered by other genes.
 
 
 # Discussion 
@@ -851,6 +930,49 @@ same person.
 
 # Questions
 
+1.	What method did you choose and why?
+
+    I choose g:profiler as the method for over representation analysis, since I already have experience using it from the g:profiler assignment (which makes it easier to use) and Professor Isserlin seems to recommend it due to the fact that she asked us to use g:profiler for the homework assignment. As well, the pvalue is shown very clearly on g:profiler with lots of colors. 
+
+2.	What annotation data did you use and why? What version of the annotation are you using?
+
+    I used Gene ontology: Biological Process released 2021-12-15, Reactome released 2022-1-3, Wiki Pathways released 2021-12-10. I am using this since this was recommend in the g:profiler assignment. 
+
+3.	How many genesets were returned with what thresholds?
+
+    For first 5000 genes on the whole list (I could not ran all 19000 genes, since g:profiler will crash) in a unordered query, the number of terms return at less than 0.05 pvalue and have between 5-200 genes is 347 for Gene ontology: Biological Process, 31 for Reactome, 14 for Wiki Pathways
+
+    In the same but ordered query, the number of terms return at less than 0.05 pvalue and have between 5-200 genes is 255 for Gene ontology: Biological Process, 3 for Reactome, 0 for Wiki Pathways
+
+4.	Run the analysis using the up-regulated set of genes, and the down-regulated set of genes separately. How do these results compare to using the whole list (i.e all differentially expressed genes together vs. the up-regulated and down regulated differentially expressed genes separately)?
+
+    For the downregulated genes unordered query, the number of terms return at less than 0.05 pvalue and have between 5-200 genes is 43 for Gene ontology: Biological Process, 8 for Reactome, 3 for Wiki Pathways.
+    For the downregulated genes ordered query, the number of terms return at less than 0.05 pvalue and have between 5-200 genes is 93 for Gene ontology: Biological Process, 3 for Reactome, 0 for Wiki Pathways.
+    For the upregulated genes unordered query, the number of terms return at less than 0.05 pvalue and have between 5-200 genes is 507 for Gene ontology: Biological Process, 35 for Reactome, 12 for Wiki Pathways.
+    For the upregulated genes ordered query, the number of terms return at less than 0.05 pvalue and have between 5-200 genes is 773 for Gene ontology: Biological Process, 0 for Reactome, 0 for Wiki Pathways.
+
+1.	Do the over-representation results support conclusions or mechanism discussed in the original paper?
+
+    It does, the top two term of GO:BP (for terms that have between 5-200 genes) for the downregulated unorder genes is detection of light stimulus and detection of visible light. And the fifth term of the ordered query, is phototransduction. 
+
+    As well, the top two term (for terms that have between 5-200 genes) for the first 5000 genes on the whole list is detection of light stimulus and phototransduction. 
+The third term of the ordered query, is phototransduction. 
+
+    Furthermore, there are many more term in the down-regulated order query, that is related with photoreceptor. 
+
+    However, result from the unordered query with reactome and wiki pathway is not that related to vision. 
+
+    Since a mutation in CRX prevents it from being transcribed, the result of up-regulated genes is not in the scope of experiment anyway. 
+
+2.	Can you find evidence, i.e. publications, to support some of the results that you see. How does this evidence support your results.
+
+    Yes, in [@photoreceptor], say that CRX is central to the transcription factor network that controls photoreceptor development. In both the whole list ordered in the downregulated genes, photoreception is an important term, this means that in the RNA expression of these genes, phototransduction is not activated due to CRX’s role, which is consistent to the finding presented by that study. 
+
+    I believe that detection of light stimulus is also supported by this, since light stimulus is essentially photons, and photoreceptor are activated by photons. However, detection of visible light is a bit more tricky, it could be supported if it is in addition to all light, but the same cannot necessarily be concluded, if it is exclusively visible light. Though given the context that the term detection of light stimulus is given together with detection visible light, it would probably be better to interpret it as based on the RNA expression, the person would have trouble detecting light stimulus and visible light.  
+
+    Another consideration is that, I think photoreceptor behave differently when struck by photon from non-visible light, or else if phototransduction can be activated to sufficient degree by these photon, then couldn’t we see non-visible light? (That is of course unlikely, by definition)
+
+    Lastly in the Reactome, we have phototransduction cascade as a top term, which is definitely supported by the study in question. 
 
 
 
