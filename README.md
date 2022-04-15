@@ -14,6 +14,10 @@ A2 Report html raw
 https://github.com/bcb420-2022/Kairen_Chen/blob/main/A2_KaiRenChen.nb.html
 
 A2 Report html rendered
-[https://htmlpreview.github.io/?https://github.com/bcb420-2022/Kairen_Chen/blob/main/A2_KaiRenChen.nb.html
+https://htmlpreview.github.io/?https://github.com/bcb420-2022/Kairen_Chen/blob/main/A2_KaiRenChen.nb.html
 
+A3 Report html raw
+https://github.com/bcb420-2022/Kairen_Chen/blob/main/R_notebook/A3_KaiRenChen.nb.html
 
+A3 Report html rendered
+https://htmlpreview.github.io/?https://github.com/bcb420-2022/Kairen_Chen/blob/main/R_notebook/A3_KaiRenChen.nb.html
