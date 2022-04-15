@@ -1,0 +1,741 @@
+---
+title: 'BCB420 Assignment 3 Report: Data set Pathway and Network Analysis'
+author: "Kai Ren Chen"
+subtitle: 'Journal Article: Gene therapy of dominant CRX-Leber congenital amaurosis
+  using patient retinal organoids'
+output:
+  html_notebook:
+    toc: yes
+    toc_depth: 2
+  html_document:
+    toc: yes
+    toc_depth: '2'
+    df_print: paged
+bibliography: a3citation.bib
+link-citations: yes
+---
+
+# Introduction
+Cone rod homeobox (CRX) mutations can cause a dominant form of Leber congenital
+amaurosis (LCA), which affect vision. The author made induced pluripotent stem
+cells (iPSCs) from LCA patient and their healthy parent. This specific CRX
+mutation affect transcription. The data source is GSE152939. The data was
+collected from 6 retinal organoids, for 90 days, 125 days, 150 days and 200 day
+after the iPSCs start to differentiate; 3 of the organoids were from LCA
+patient, and 3 organoids were from their healthy parent. Some result from last
+report was tha when doing over-representation analysis with g:profiler, the
+top 5000 genes with importance considered return geneset that involve vision,
+so does the down-regulated genes, but the up-regulated genes do not. As well,
+the gene sets from up-regulated genes, are higher than the other two. In this report
+we try to do non-thresholded enrichment analysis through GSEA and visualize
+it through the cytoscape app enrichment map, and using autoannotate to find major
+themes. 
+[@CRX; @gprofiler]
+
+
+# GESA
+We start with 17046 genes, and use 5313 geneset (those are between 15 and 200 genes), of it, 4014 geneset are up-regulated, which 818 geneset have FDR below 0.25, 843 genesets have nominal pvalue below 0.05, 523 genesets have nominal pvalue below 0.01. Then, 1299 geneset are down-regulated, and 40 geneset have FDR below 0.25, 151 genesets have nominal pvalue below 0.05, 73 genesets have nominal pvalue below 0.01.
+
+The top geneset for up-regulated phenotype is
+HALLMARK_G2M_CHECKPOINT%MSIGDB_C2%HALLMARK_G2M_CHECKPOINT, its pvalue is less
+than 0.000, ES is 0.78789514, NES is 2.5575461, FDR is less than 0.000, it has
+72 genes in its leading edge, the top gene of this gene set is MCM6.
+
+The top geneset for up-regulated phenotype is VISUAL SIGNAL TRANSDUCTION:
+CONES%PATHWAY INTERACTION DATABASE NCI-NATURE CURATED DATA%VISUAL SIGNAL
+TRANSDUCTION: CONES, its pvalue is less than 0.000, ES is -0.71128595, NES is
+-1.9979581, FDR is 0.17965077, it has 19 genes in its leading edge, the top gene
+of this gene set is GNB5.
+
+It seems like the many up-regulated geneset are associated with the cell cycle,
+which may be expected since the retinal organoid is undergoing development, some
+down regulated geneset are associated with vision, which is also expected since,
+CRX is mutated in its transactivation domain, and it is a gene that affect
+vision, though not as many as cell cycle with up-regulated ones
+
+[@gsea; @enrichmentmap; @empipeline; @emnotebook; @l10; @l11a; @l11b; @l12]
+
+# Enrichment Map
+
+![Figure 1: Basic Enrichment Map](../Images/ungrouped0.1.pdf)
+Figure 1: The enrichment map before any action is done on the enrichment map. It
+has 508 nodes and 2512 edges. The nodes represent genesets, red means it has
+positive normalized enrichment score and so are up-regulated genesets, blue
+means it has negative normalized enrichment score and so are down-regulated
+genesets. The node labels are the name of each geneset. The size of the node
+indicate the size of the geneset that it represent, which can be between 15 and
+200. The thickness of the edges represent the similarity between the
+nodes/geneset. We note that there are no blue nodes, since all down-regulated
+gene sets have q-values above the q-value threshold. [@enrichmentmap;
+@empipeline; @emnotebook; @l10; @l11a; @l11b; @l12]
+
+![Figure 2: Annotated Enrichment Map](../Images/grouped_yes_node_names.pdf)
+Figure 2: The enrichment map after autoannotate is used to group the nodes based
+on shared major biological theme. It has 508 nodes, 2512 edges, and 267 circles.
+Each circle that encircle the nodes represent a major theme that is shared among
+the nodes, the circle labels are the name of each theme. The nodes represent
+genesets, red means it has positive normalized enrichment score and so are
+up-regulated genesets, blue means it has negative normalized enrichment score
+and so are down-regulated genesets. The node labels are the name of each
+geneset. The size of the node indicate the size of the geneset that it
+represent, which can be between 15 and 200. The thickness of the edges represent
+the similarity between the nodes/geneset. We note that there are no blue nodes,
+since all down-regulated gene sets have q-values above the q-value threshold.
+[@enrichmentmap; @empipeline; @emnotebook; @autoannotate; @l10; @l11a; @l11b; @l12]
+
+![Figure 3: Annotated Enrichment Map. no node labels](../Images/grouped.pdf)
+Figure 3: The enrichment map after autoannotate is used to group the nodes based
+on shared major biological theme, and not showing the name for each individual
+node. It has 508 nodes, 2512 edges, and 267 circles. Each circle that encircle
+the nodes represent a major theme that is shared among the nodes, the circle
+labels are the name of each theme. The nodes represent genesets, red means it
+has positive normalized enrichment score and so are up-regulated genesets, blue
+means it has negative normalized enrichment score and so are down-regulated
+genesets, which can be between 15 and 200. The size of the node indicate the
+size of the geneset that it represent. The thickness of the edges represent the
+similarity between the nodes/geneset. We note that there are no blue nodes,
+since all down-regulated gene sets have q-values above the q-value threshold.
+[@enrichmentmap; @empipeline; @emnotebook; @autoannotate; @l10; @l11a; @l11b; @l12]
+
+![Figure 4: Theme Network](../Images/collapsed.pdf)
+Figure 4: The enrichment map after nodes in each circle is collapsed into 1
+node. It has 267 nodes, 258 edges. Each node now represent a major biological
+theme, the node labels are thename of each theme. Red means overall it is
+considered up-regulated. The edges represent that there was an edge between
+these themes before collapse. We note that there are no blue nodes, since all
+down-regulated gene sets have q-values above the q-value threshold.
+[@enrichmentmap; @empipeline; @emnotebook; @autoannotate; @l10; @l11a; @l11b; @l12]
+
+
+since this pathway overlaps with others pathway I crop the diagram in according
+to how the pathway was label on reactome. I was going to do it through cytoscape
+app, but it gave me an error, so I am doing it manually.
+[@enrichmentmap; @empipeline; @emnotebook; @autoannotate; @l10; @l11a; @l11b; @l12]
+
+# pathway in depth
+
+![Figure 5: Pathway Diagram](../Images/pathway.pdf)
+
+Figure 5. Resolution of sister chromatid cohesion. A node represent the substance for the reaction, and the edge represent an reaction. For the edges white circle plus white square means a transition reaction, a black circle means association reaction, a white double circle means a disassociation reaction, a white square with two slashes means omitted reaction, a square with a number in it indicates the number of molecules need for that reaction. For the nodes, blue rectangles with cut corners are complexes, green rectangle with round corners are proteins, green ovals are small molecules (that are not proteins), green rectangles with square corner are not protein nor small molecules. 
+
+Figure 5A
+NUMA1
+
+Figure 5B
+ACTR1A,AKAP9,ALMS1,CCP110,CDK1,CDK5RAP2,CENPJ,CEP131,CEP135,CEP152,CEP164,CEP192,CEP250,CEP290,CEP41,CEP43,CEP57,CEP63,CEP70,CEP72,CEP76,CEP78,CETN2,CKAP5,CLASP1,CNTRL,CSNK1D,CSNK1E,DCTN1,DCTN2,DCTN3,DYNC1H1,DYNC1I2,DYNLL1,HAUS1,HAUS2,HAUS3,HAUS4,HAUS5,HAUS6,HAUS7,HAUS8,HSP90AA1,MAPRE1,MZT1,MZT2A,MZT2B,NDE1,NEDD1,NEK2,NINL,NME7,ODF2,OFD1,PAFAH1B1,PCM1,PCNT,PLK1,PLK4,PPP2R1A,PRKACA,PRKAR2B,SDCCAG8,SFI1,SSNA1,TUBA1A,TUBA4A,TUBB,TUBB4A,TUBB4B,TUBG1,TUBG2,TUBGCP2,TUBGCP3,TUBGCP4,TUBGCP5,TUBGCP6,YWHAE,YWHAG
+
+Figure 5C
+proteins from B and A
+
+Figure 5D
+proteins from B and A with a microtubule
+
+Figure 5E
+proteins from J and K
+
+Figure 5F
+CCNB1,CCNB2,CDK1
+
+Figure 5G
+proteins from J and K
+
+Figure 5H
+PLK1
+
+Figure 5I
+proteins from J and K
+
+Figure 5J
+PDS5A,PDS5B,RAD21,SMC1A,SMC3,STAG1,STAG2,WAPL
+
+Figure 5K
+CDCA5
+
+Figure 5L
+protein from J
+
+Figure 5M
+HDAC8
+
+Figure 5N
+AHCTF1,APITD1,AURKB,B9D2,BIRC5,BUB1,BUB1B,BUB3,CDC20,CDCA8,CENPA,CENPC,CENPE,CENPF,CENPH,CENPI,CENPK,CENPL,CENPM,CENPN,CENPO,CENPP,CENPQ,CENPT,CENPU,CKAP5,CLASP1,CLASP2,CLIP1,DSN1,DYNC1H1,DYNC1I1,DYNC1I2,DYNC1LI1,DYNC1LI2,DYNLL1,DYNLL2,ERCC6L,INCENP,ITGB3BP,KIF18A,KIF2A,KIF2B,KIF2C,KNL1,KNTC1,MAD1L1,MAD2L1,MAPRE1,MIS12,NDC80,NDE1,NDEL1,NSL1,NUDC,NUF2,NUP107,NUP133,NUP160,NUP37,NUP43,NUP85,NUP98,PAFAH1B1,PLK1,PMF1,PPP1CC,PPP2CA,PPP2CB,PPP2R1A,PPP2R1B,PPP2R5A,PPP2R5B,PPP2R5C,PPP2R5D,PPP2R5E,RANBP2,RANGAP1,RCC2,RPS27,SEC13,SEH1L,SGO1,SGO2,SKA1,SKA2,SPC24,SPC25,SPDL1,TAOK1,XPO1,ZW10,ZWILCH,ZWINT
+
+Figure 5O
+protein from N + TUBA1A,TUBA1B,TUBA1C,TUBA3C,TUBA3D,TUBA3E,TUBA4A,TUBA4B,TUBA8,TUBAL3,TUBB1,TUBB2A,TUBB2B,TUBB3,TUBB4A,TUBB4B,TUBB6,TUBB8,TUBB8B
+
+Figure 5P
+proteins from J and K
+
+Figure 5Q
+protein from J and K and O
+
+Figure 5R
+protein from J and K and O
+
+Figure 5S
+protein from J and K and O
+
+Figure 5T
+protein from J and K and O
+
+Figure 5U
+NCAPD2,NCAPG,NCAPH,SMC2,SMC4
+
+Figure 5V
+proteins from U
+
+Figure 5W
+proteins from U
+
+Figure 5X
+This says unknown phosphatase
+
+Figure 5Y
+This says mitotic metaphase and anaphase
+
+
+Figure 5 all genes 
+(first column is gene name, second is log FC, third is qvalue)
+NEK2	8.31551138319378	1.12439635626261e-09
+
+CCNB2	12.9661172279325	1.31788591403097e-09
+
+CENPU	14.8817150669597	4.21026805895794e-09
+
+NCAPH	7.50622032643804	8.19331118541836e-09
+
+CENPF	60.7885791308405	1.01879936745761e-08
+
+NUF2	8.13148537520322	1.09471089844718e-08
+
+CENPH	10.0941257893977	1.50611485016928e-08
+
+PLK4	10.7021051817874	1.72866392218538e-08
+
+CDC20	10.3756195279648	2.13653403758593e-08
+
+AURKB	7.33276673916568	2.39478540919365e-08
+
+NDC80	7.21713326353068	3.79824431861371e-08
+
+KNTC1	29.7832765040216	4.52777939284061e-08
+
+ZWINT	13.8798229656829	5.12578647915208e-08
+
+BIRC5	9.22893227546697	5.21191970344325e-08
+
+MAD2L1	14.5650169016782	5.90794016740101e-08
+
+CENPK	7.34625834364103	6.44438805475176e-08
+
+SPC24	3.52393514977885	6.94101654330188e-08
+
+CENPN	4.71582684070567	1.05236272337397e-07
+
+TUBB6	18.3768761619089	1.34625575220259e-07
+
+KIF2C	9.72868112264897	1.54887988149191e-07
+
+TUBB	117.569957453681	1.63667159671939e-07
+
+KIF18A	4.72989322081044	1.68202965669092e-07
+
+CDCA8	7.34126178099914	3.12575305960101e-07
+
+SMC4	57.1588793699693	3.74746791226111e-07
+
+ODF2	23.9023022562182	4.49672049689857e-07
+
+CENPE	9.97062322241097	5.37539974762203e-07
+
+PCNT	20.8147302679097	5.92308679520917e-07
+
+CENPO	10.0700867877083	6.08464114471808e-07
+
+RCC2	23.7051357928846	9.19913885211688e-07
+
+KNL1	11.7597618237555	1.1505962212757e-06
+
+ERCC6L	2.58730140976188	1.78735256034068e-06
+
+CDK1	22.502053138475	2.41046228570771e-06
+
+NCAPG	12.8634274471451	3.175151366339e-06
+
+CENPI	3.25876508750733	4.69727504021671e-06
+
+SGO1	3.25407628747414	5.47788070546113e-06
+
+BUB1	10.8579166428463	5.89247974121738e-06
+
+BUB1B	12.8051936365913	6.09639579786412e-06
+
+CENPA	1.73357386332453	6.86657127291457e-06
+
+SKA1	1.32099565676193	7.57449412438267e-06
+
+PLK1	5.33517041113982	7.87864358505528e-06
+
+TUBA1C	40.5393553524466	1.4435802183822e-05
+
+CENPM	1.54272523883232	3.02745877474184e-05
+
+SGO2	7.12003444852896	3.37276261618393e-05
+
+TUBA1B	379.786462608826	4.16851010273358e-05
+
+SMC2	20.6284418825009	4.24232773018222e-05
+
+TUBB3	146.980981512648	9.90601003330613e-05
+
+CENPJ	10.7933243277578	0.000138718134366732
+
+INCENP	8.61973061719695	0.000140279154217473
+
+NDE1	2.14608198867386	0.000157666208575547
+
+MZT2B	7.50363584781285	0.000172727832261421
+
+CEP131	7.51827982576251	0.000178521383292828
+
+CEP250	33.6324340730234	0.000218095423406713
+
+CEP78	14.7336797438642	0.000308946927537736
+
+CEP41	11.3132804513299	0.000405457188971255
+
+SDCCAG8	-4.19958717473869	0.000409446891309095
+
+CDK5RAP2	17.1476166875805	0.000467764803978613
+
+SSNA1	9.90181899063051	0.000530468001274809
+
+CLASP2	-113.15428954264	0.000706335801686652
+
+TUBG1	12.294590773023	0.0007712391754823
+
+CEP135	5.85826386857342	0.00111674331264381
+
+SMC1A	44.0488371433651	0.00173142103875756
+
+SFI1	7.55077957197036	0.00207287489972912
+
+ZWILCH	10.7302398570123	0.00325013547835618
+
+ITGB3BP	5.07103245754607	0.00336783774891084
+
+TUBB2B	144.960971826857	0.00381056159419148
+
+DSN1	6.75820748709812	0.00412032435518078
+
+CEP72	1.5033055610263	0.00412141897839949
+
+MAD1L1	4.62145742156552	0.00420855771546213
+
+HAUS4	4.34905453901576	0.00706126070259354
+
+NUDC	12.2027235905611	0.00710790818654586
+
+CENPL	2.23497326431256	0.00771883858065254
+
+DCTN3	-9.47526638656307	0.00821696625148132
+
+HAUS5	7.4617959538155	0.00849217441239622
+
+CEP152	4.43685683553152	0.00949332265050313
+
+DCTN1	43.5711371007952	0.0125091802446386
+
+CENPT	11.7390892366685	0.0129315815530341
+
+DYNC1H1	136.946276204795	0.0162169711360957
+
+HAUS6	12.3920238719799	0.0168123810830763
+
+HAUS7	1.31373467753802	0.0169454398194573
+
+CEP290	16.1876169118057	0.0225443557628548
+
+KIF2A	-53.1786263541938	0.0261605190714368
+
+HAUS8	1.06628562133242	0.0274593042840768
+
+PRKAR2B	-11.9768232834983	0.0285846156365343
+
+RANGAP1	14.6698100211273	0.0304833162444342
+
+MZT2A	4.00410633541572	0.0316213875164445
+
+PPP2R5B	11.9556856963867	0.0319460167531754
+
+PPP1CC	-68.7445108713943	0.0348241239842933
+
+PPP2R5E	-21.9655733680796	0.0349089067059473
+
+SEC13	16.1800206473048	0.0376910680935202
+
+HAUS1	5.0125026772817	0.0378289539102597
+
+ALMS1	14.1495797806869	0.0380602819304046
+
+NUP133	-14.4038907857126	0.0382130174996039
+
+TUBB4A	22.6713048083007	0.0412324409588744
+
+TUBB1	0.385043738930362	0.0417897940241048
+
+PPP2R5D	-9.7064265839475	0.0497854197750527
+
+BUB3	8.34363708287623	0.0510394301233031
+
+CSNK1E	33.7270040336933	0.0680211383561524
+
+CNTRL	5.35070349727524	0.0690910938813318
+
+TUBA1A	641.167686051107	0.0841601979997445
+
+NUMA1	69.3787803604778	0.0851432187982615
+
+TUBA4B	0.791405657062222	0.0854917887306322
+
+CENPP	0.830805288228897	0.0864572624572679
+
+PDS5B	12.3106393698687	0.0921736106527312
+
+MZT1	6.80518980064901	0.108609699631536
+
+TUBGCP2	7.88651197668587	0.127166390872858
+
+CKAP5	25.9818082201229	0.127971756062982
+
+NUP37	2.96920682034528	0.133493262815944
+
+SPDL1	3.98765077095993	0.158627481106253
+
+MAPRE1	15.5922895736957	0.165214589190665
+
+RPS27	-58.8531680667279	0.166253799844279
+
+TUBGCP4	-5.01290172724171	0.170635902719653
+
+NUP98	-11.4962237081374	0.171953685009022
+
+NME7	-3.82471554344688	0.179391873604208
+
+CEP192	6.877865433478	0.181840831741101
+
+NEDD1	4.47250628284891	0.197787126368496
+
+DYNC1I1	-3.0655822940274	0.210728665148308
+
+TUBG2	-3.89129437178305	0.222649394923771
+
+TUBGCP6	9.432099087233	0.225902290818593
+
+NDEL1	-2.99974949596159	0.241134089222662
+
+TUBB2A	20.9144927101528	0.247607280017681
+
+CENPQ	1.20568924158856	0.254223833631033
+
+PPP2CB	-14.6758249904889	0.262797106467351
+
+SMC3	-22.4156223501645	0.26426528937156
+
+NUP85	2.24795659139891	0.275596649096679
+
+NUP107	5.04299994321699	0.280534617768691
+
+PPP2CA	-18.7618924549041	0.282338906946594
+
+CEP164	9.1435577679224	0.294664193868355
+
+HSP90AA1	435.612575323404	0.294942682074712
+
+CEP57	-8.09241347280459	0.302677500750287
+
+CEP70	3.75882387954261	0.317040199173414
+
+XPO1	26.2170668508701	0.32038762169209
+
+YWHAE	25.8539964759998	0.327054463165438
+
+PPP2R1B	2.4528016933515	0.358208024442431
+
+PAFAH1B1	-25.9948659184586	0.365578694104031
+
+NSL1	1.98959126158594	0.394442356403667
+
+TUBGCP3	-2.63852095343663	0.398819432995553
+
+CEP76	-1.23959837978376	0.464829948945275
+
+MIS12	-2.55875653184551	0.466497040996412
+
+B9D2	0.196425304654041	0.472219573846757
+
+TUBGCP5	2.89660040977473	0.477138613718225
+
+TUBB4B	42.4357490925742	0.495783762922138
+
+CETN2	4.20046937053589	0.49663251717905
+
+PPP2R5A	-2.51893143976527	0.508501556400464
+
+ZW10	2.17644485948951	0.521680376347227
+
+CLASP1	-5.55923825980413	0.536652147562863
+
+DYNC1LI2	-16.3047090360078	0.547048300392986
+
+RAD21	-16.8532784605766	0.548709224657175
+
+DCTN2	-4.96530654199435	0.561519513739059
+
+PPP2R1A	17.0779477640598	0.583086457561745
+
+DYNLL2	7.87636635762401	0.611488022084182
+
+PMF1	1.22312078577107	0.61332649557592
+
+SEH1L	1.85375952436646	0.625983240283609
+
+DYNC1I2	-8.2922628886394	0.650922089680436
+
+DYNLL1	3.88186916070799	0.652034362598231
+
+STAG1	4.72385885508123	0.65277063952656
+
+SPC25	0.197607717030961	0.672583640860286
+
+STAG2	-10.2692268917917	0.673679999671221
+
+WAPL	-4.27698184451239	0.720645019265806
+
+OFD1	-4.59048053284747	0.725975752122219
+
+CSNK1D	4.07298762925757	0.73013166547044
+
+NUP160	-1.62747442237981	0.772961776653006
+
+PRKACA	2.20686738056626	0.808101341985611
+
+SKA2	2.15182886061691	0.815609559450859
+
+YWHAG	8.52971096694797	0.828436324601931
+
+TUBA8	0.0973183803273515	0.828480756687979
+
+TAOK1	6.03504503892271	0.837709788391341
+
+HAUS3	0.766776566918928	0.840099886500266
+
+DYNC1LI1	-1.10046155505164	0.843516070054696
+
+TUBA4A	3.71172216778251	0.852966993248978
+
+CLIP1	-1.89799711434738	0.87336847603144
+
+RANBP2	-4.26388743261009	0.887788334584288
+
+PCM1	4.07876836950889	0.888464912919046
+
+HAUS2	0.477743071812997	0.924491475538597
+
+CENPC	0.364199740872121	0.931974086039475
+
+CEP63	-0.341028493600413	0.939061068816087
+
+NINL	-1.34894324493985	0.940168245615802
+
+PPP2R5C	-0.639014522870936	0.957552464656762
+
+CEP43	-0.16100011133714	0.974020548628812
+
+CCP110	0.293503660519698	0.974853644772648
+
+NUP43	-0.115769686034254	0.979035587894204
+
+
+We can see that this most genes in this pathway is up-regulated, espically the
+significant genes
+
+
+[@enrichmentmap; @empipeline; @emnotebook; @autoannotate; @l10; @l11a; @l11b; @l12]
+
+# Discussion 
+
+# Questions
+
+## GSEA
+
+Conduct non-thresholded gene set enrichment analysis using the ranked set of
+genes from Assignment #2.
+
+1. What method did you use? What genesets did you use? Make sure to specify
+versions and cite your methods.
+
+    I used the GSEA 4.2.3 application on mac, the gmt I used was
+    Human_GOBP_AllPathways_no_GO_iea_March_01_2022_symbol.gmt downloaded from
+    baderlab geneset collection. For require and basic parameters, I used the
+    default and recommended value of 1000 permutations, only including geneset
+    between 15 and 200, no collapse or remap to gene symbols since we are
+    already using gene symbols from a1 and a2, the enrichment statistic is
+    weighted.
+        
+    For the advance fields, Collpasing mode for probe set greater or equal to 1
+    gene, is the Abs_max_of_probes, the normalization mode is meandiv, the seed
+    for permutation is timestamp, there is no alternative delimiter omit feature
+    with no symbol match was set to true.
+    
+    I did ran it again with Enrichment Statistics as p2 to give more weight to
+    the top genes, along with the same gmt but in april 2022, though this gave
+    me down-regulated genesets that is less associated with vision. That make
+    less sense, so I did not present the result from it.
+    [@gsea; @enrichmentmap; @empipeline; @emnotebook; @l10; @l11a; @l11b; @l12]
+
+2. Summarize your enrichment results.
+
+    see the GSEA section[@gsea; @enrichmentmap; @empipeline; @emnotebook; @l10; @l11a; @l11b; @l12]
+                
+3. How do these results compare to the results from the thresholded analysis in
+Assignment #2. Compare qualitatively. Is this a straight forward comparison? 
+Why or why not?
+
+    They mostly are similar, that most up-regulated are associate with cell
+    cycle and some down-regulated are associated with vision. However, this is
+    not straight forward comparison since, GSEA lack the whole list result (all
+    differentially express genes together), where gene can be ordered by
+    importance. As well, GSEA just look at if a geneset is up or down regulated. 
+    [@gsea; @enrichmentmap; @empipeline; @emnotebook; @l10; @l11a; @l11b; @l12]
+    
+
+## Enrichment Map
+
+1. Create an enrichment map - how many nodes and how many edges in the resulting
+map? What thresholds were used to create this map? Make sure to record all
+thresholds. Include a screenshot of your network prior to manual layout.
+  
+    I used the q-value threshold of 0.1, with P-value of 1.0, and usingJaccard
+    Overlap Combined: 0.375 and test used: Jaccard Overlap Combined Index (k
+    constant = 0.5), there are 508 nodes and 2512 edges.
+    [@enrichmentmap; @empipeline; @emnotebook; @l10; @l11a; @l11b; @l12]
+
+2. Annotate your network - what parameters did you use to annotate the network.
+If you are using the default parameters make sure to list them as well.
+
+    I am using the default parameter from autoannotate. I also use the
+    Autoannotate CoSE Cluster layout, I think it look the best from all the
+    layout options
+    [@enrichmentmap; @empipeline; @emnotebook; @autoannotate; @l10; @l11a; @l11b; @l12]
+
+3. Make a publication ready figure - include this figure with proper legends in
+your notebook.
+
+    see figure 3
+    [@enrichmentmap; @empipeline; @emnotebook; @autoannotate; @l10; @l11a; @l11b; @l12]
+
+4. Collapse your network to a theme network. What are the major themes present
+in this analysis? Do they fit with the model? Are there any novel pathways or
+themes?
+
+    Some group/theme before collapse, only have one node, so number of theme, 
+    were not that much lesser than number of genesets. The major theme is that it all
+    is connected to cell cycle. Some major hub nodes, apc cdc20 degradation,
+    signal kinetochores, excision dna telomere fanconi anemia bard1, meiotic
+    reciprocal meiosis, trasnduction checking point signalling, cellular atm
+    pathway, regulation metaphase anaphase. It does not fit with the model, as I go into more depth later
+    CRX does not have anything to do with cell cycle
+    
+    As for whether or not this was novel, it is hard to tell, since no
+    publicaiton to date have connect CRX with cell cycle, however I though that
+    the control retinal organoid was developed from iPSC from the parent of the
+    patient they control and the experiment may have other confouding variable
+    (except from mutation in CRX) [@enrichmentmap; @empipeline; @emnotebook;
+    @autoannotate; @l10; @l11a; @l11b; @l12]
+    
+    
+    
+    
+## interpretation
+
+1. Do the enrichment results support conclusions or mechanism discussed in the original paper? How do these results differ from the results you got from Assignment #2 thresholded methods
+
+    It does not, the conclusion of the original paper for this part of the
+    experiment, that I am analysing for this report, is that the lack of
+    transciption for CRX would cause its transcription targets to not be
+    activated, and since those transcription targets are connected to
+    photoreceptor development, the development would be affected, and by
+    extension, vision is affected. [@CRX, @photoreceptor]
+    
+    This is what the g:profiler result supports too, the geneset concerning
+    vision are enriched, more so, it was downregulated compare to the control.
+    [@gprofiler]
+    
+    However, GSEA does not even have anything close to that, most of the
+    genesets with low FDR or q-values, only have a commmon theme, that is cell
+    cycle. I have no idea why the vision gene set have much higher q-values then
+    cell cycle gene sets. It could be that samples were taken in 4 different
+    time point, but supposedly I have work around that in a2, and if that is the
+    case, it would have affect g:profiler. I suspect that since the control and
+    the patient is not from the same person after all, and so other geneset
+    involved in non-photoreceptor development differentially expressed too.
+    Perhaps, GSEA is not the best method for non-thresholded enrichment
+    analysis, for this kind of data, in accordance to literature [@oragold]
+    
+    Though, what I find most likely is that, because the retinal organoid is
+    undergoing development, there are a lot of weak signal on cell cycle, and
+    that weak signal together (in GSEA), is a stronger signal than, the signal
+    on vision and photoreceptor. Since g:profiler is thresholded, (by 0.05
+    qvalue), these weak signal are taken into consideration, even when I ran
+    g:profiler with all the genes, I only used the first 5000 genes (ranked by
+    pvalues mutiply the sign of log FC, from smallest to largest, and so
+    down-regulated first), and the 5000th gene only have q-value of 0.3.
+    Therefore, since the lack of CRX transcript means genes are downregulated,
+    g:profiler focused on the signal concering photoreceptor more, whereas GSEA
+    does not and it picked most prevalent signal, cell cycle. [@gprofiler; @gsea]
+    
+2. Can you find evidence, i.e. publications, to support some of the results that you see. How does this evidence support your result?
+
+    I cannot find anything that supports a mutation in the transactivation
+    domain of CRX will enrich the cell cycle genesets. In other word,
+    supposedly, CRX should have nothing to do with cell cycle.
+    
+    I also cannot find anything that supports cell cycle is involved in organoid
+    development. I am not sure if that is because this is common knowledge,
+    because to undergo cell differentiation, the cell must grow and divide,
+    therefore, cell cycle.
+    
+
+
+## Three Options
+
+Choose a specific pathway or theme to investigate in more detail. Show the 
+pathway or theme as a gene network or as a pathway diagram. Annotate the 
+network or pathway with your original log fold expression values and p-values
+to show how it is effected in your model. (Hint: if the theme or pathway is not
+from database that has detailed mechanistic information like Reactome you can 
+use apps like GeneMANIA or String to build the the interaction network.)
+
+
+1. Why did you choose this pathway or theme?  
+
+    I first tired to find a pathway that includes CRX, the gene of interest in
+    this experiment, but it was not in any gene sets, only explaination was that
+    the qvalue for a CRX geneset is above the threshold. I then tried to find a
+    pathway that has nothing to do with cell cycle or cancer, since no
+    publication to date has linked CRX with cell cycle. However I could not find
+    it anything, it probably is all in down regulated pathways, but they have
+    higher q-values. So they were not included in the enrichment map. My next
+    choice was to choose one pathway that had the highest NES, and in a database
+    like reactome or wiki pathway (and not in GO:BP), since it is easier to make
+    it into a pathway diagram, so I chose RESOLUTION OF SISTER CHROMATID
+    COHESION%REACTOME%R-HSA-2500257.1 Its stable identifier is R-HSA-2500257.
+    [@enrichmentmap; @empipeline; @emnotebook; @reactome; @l10; @l11a; @l11b; @l12]
+    
+
+# Journal Link
+
+https://github.com/bcb420-2022/Kairen_Chen/wiki/Journal-9:-Data-set-Pathway-and-Network-Analysis
+
+# References
